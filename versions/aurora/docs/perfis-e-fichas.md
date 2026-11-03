@@ -45,3 +45,18 @@ Pessoas abre por padrão em galeria. Galeria, lista e visualização compacta co
 O cabeçalho está preparado para nome e foto por `window.MinervaSession.setVerifiedIdentity({name, picture})`. A integração deve chamar o adaptador depois que o backend verificar a sessão Google. O adaptador só apresenta identidade; não valida token, autentica usuário nem atribui papel. `clearIdentity()` remove a imagem. URL da foto requer HTTPS e possui fallback para iniciais.
 
 Não há OAuth Google configurado no repositório. Para ativar login real serão necessários o provedor e callback do backend, client ID público, origem autorizada e associação de usuário/empresa/papel no servidor. Segredo de cliente, quando aplicável, fica exclusivamente no servidor; nunca no bundle ou em chat. Não usar um JWT apenas decodificado como prova de identidade. A URL da foto exige acesso de rede ao destino fornecido pelo provedor.
+
+## Painel empresarial, funis e equipe
+
+Indicadores do gestor resume aquisição médica, jornada do paciente, campanhas, operação de pedidos e desempenho de representantes/despachantes. Os dois funis representam pessoas únicas de uma mesma coorte que alcançaram marcos, e não a ocupação atual das colunas do quadro.
+
+- Médico: identificado → qualificado → abordado → dados confirmados → proposta apresentada → parceria aceita → onboarding concluído → parceria ativa → encaminhamento de pacientes.
+- Paciente: encaminhado → acolhido → receita recebida → documentação recebida → pedido criado → pagamento confirmado → preparação → despacho → entrega confirmada → acompanhamento iniciado.
+- Conversão por etapa: quantidade que alcançou o marco dividida pela quantidade da etapa anterior, na mesma coorte e filtro de origem. Sem denominador, mostra “—”. A entrada não é apresentada como conversão.
+- Reuniões/visitas e consulta/regularização condicionais ficam explicadas fora da cadeia obrigatória. Receber documentos não os valida; consulta não é necessária para quem já chega com receita. Aceite, pagamento, despacho e entrega exigem eventos próprios.
+- A demonstração usa marcos fictícios explícitos ligados aos mesmos médicos e pacientes das fichas. Ana tem mais de um pedido: um entregue, outro enviado e um em preparação. Isso não triplica a contagem de pacientes. Os quatro pedidos demonstrativos incluem o pedido de Pedro atribuído a Camila Rocha.
+- O filtro de campanha usa a atribuição de origem dos mesmos registros em funis e tabela. A atribuição não é prova de causalidade. CAC, ROI e margem ficam sem estimativas porque não há custos integrados.
+- Os cartões de equipe apresentam o escopo global do colaborador no ciclo, independentemente do filtro comercial da empresa. A ficha individual do representante contém carteira, funil e atividades; a do despachante contém pedidos atribuídos, preparação, despacho, entrega e pendências de pagamento. Abrir uma etapa do funil do representante preserva sua carteira.
+- As fichas dos colaboradores são os registros de tipo Colaborador da coleção Pessoas, acessíveis também por Gestão → Equipe e pelos indicadores. Não são novos cadastros duplicados. Permanecem restritas à prévia de gestor neste frontend; o backend deverá impor a autorização.
+
+A prévia de Pessoas é um popup não modal por hover ou foco. Clique/toque também abre o popup; o botão explícito leva à ficha completa. Mover o ponteiro para o popup permite usar os links. Escape, fechar, rolagem ou troca de perfil encerram a prévia. Filtros e visualização permanecem na coleção ao retornar do item.

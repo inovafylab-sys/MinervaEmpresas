@@ -19,14 +19,14 @@ with sync_playwright() as p:
         return page.locator(f'#navigation [data-nav="{route}"]')
 
     go('pessoas')
-    expect(page.locator('.person-preview-card')).to_have_count(6)
+    expect(page.locator('.person-preview-card')).to_have_count(11)
     page.locator('[data-facet=city]').select_option('São Paulo, SP')
     page.locator('[data-facet=specialty]').select_option('Psiquiatria')
     expect(page.locator('.person-preview-card')).to_have_count(1)
     page.locator('[data-preview=marina]').click()
-    expect(page.locator('.collection-preview')).to_be_visible()
+    expect(page.locator('#person-hover-preview')).to_be_visible()
     assert page.url.endswith('#pessoas')
-    page.locator('.collection-preview [data-nav="pessoas/marina"]').click()
+    page.locator('#person-hover-preview [data-nav="pessoas/marina"]').click()
     page.wait_for_url('**/#pessoas/marina')
     expect(page.locator('h1')).to_have_text('Ficha de gestão')
     page.locator('.back').click()
@@ -38,7 +38,7 @@ with sync_playwright() as p:
     page.locator('[data-view=Compacta]').click()
     expect(page.locator('.compact-people .person-preview-card')).to_have_count(1)
     page.locator('[data-clear-facets]').click()
-    expect(page.locator('.person-preview-card')).to_have_count(6)
+    expect(page.locator('.person-preview-card')).to_have_count(11)
     print('PASS: gallery/list/compact share combined filters; preview stays in collection; item has own page; return preserves filters')
 
     go('quadros')
@@ -94,7 +94,7 @@ with sync_playwright() as p:
     expect(menu('visitas')).to_be_hidden()
     expect(menu('pedidos')).to_be_visible()
     go('indicadores')
-    expect(page.locator('.metric-value').first).to_have_text('2')
+    expect(page.locator('.metric-value').first).to_have_text('3')
     assert 'Médicos da minha carteira' not in page.locator('main').inner_text()
     go('pedidos')
     assert '1043' in page.locator('main').inner_text()
@@ -122,7 +122,7 @@ with sync_playwright() as p:
 
     role('gestor')
     go('pessoas')
-    expect(page.locator('.person-preview-card')).to_have_count(6)
+    expect(page.locator('.person-preview-card')).to_have_count(11)
     for route in ['estrategia','campanhas','pedidos','reunioes','visitas','tarefas','quadros']:
         expect(menu(route)).to_be_visible()
     # Identity rendering is separate from authentication and assignment. Mock image locally, never call Google.

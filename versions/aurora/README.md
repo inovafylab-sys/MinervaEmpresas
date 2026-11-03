@@ -17,10 +17,10 @@ Abra o servidor em um navegador compatível. Também é possível servir a pasta
 
 ## Páginas
 
-- Visão geral e Indicadores.
+- Visão geral por perfil e Indicadores empresariais do gestor: dois funis completos, conversão entre etapas, filtro de campanha, resultados comerciais, pedidos e desempenho da equipe.
 - Estratégia, distribuição validada em 100% e segmentação contextual.
 - Campanhas, filtros, criação local e ficha da campanha.
-- Pessoas com galeria, lista e visualização compacta; busca e filtros combináveis por tipo, especialidade/contexto, cidade, etapa e responsável; prévia na coleção e ficha individual. Filtros são preservados no retorno da ficha.
+- Pessoas com galeria, lista e visualização compacta; busca e filtros combináveis por tipo, especialidade/contexto, cidade, etapa e responsável; popup de prévia por hover/foco/toque e ficha individual. Filtros são preservados no retorno da ficha.
 - Conversas com composição de mensagens explicitamente não enviadas.
 - Reuniões, calendário demonstrativo, preparação e registro de resultado.
 - Visitas, mapa conceitual, roteiro e registro de resultado.
@@ -29,7 +29,7 @@ Abra o servidor em um navegador compatível. Também é possível servir a pasta
 - Pedidos, ficha, detalhe de pagamento, envio, catálogo, produto, estoque e movimentos.
 - Prévias de catálogo e pagamento do paciente, acessíveis pela busca global.
 - Cérebro: identidade, manuais, conhecimento, memória, decisões, fontes e versões.
-- Gestão: empresa, equipe, permissões explicativas, conexões, plano e preferências.
+- Gestão: empresa, equipe, permissões explicativas, conexões, plano e preferências. Equipe abre as mesmas fichas de colaboradores de Pessoas, com indicadores, carteira/atividades ou pedidos/logística de cada profissional.
 - Notificações e proposta de aprovação.
 - Apresentação do sistema em oito etapas, orientada pelo material Neurum.
 
@@ -47,9 +47,12 @@ Tarefas persistem no armazenamento deste navegador. Pessoas, campanhas, mensagen
 
 ```bash
 node --check app.js
+node --check company.js
+node --check people-preview.js
 # Em outro terminal, com o servidor acima ativo:
 python tests/smoke.py
 python tests/profiles.py
+python tests/company.py
 ```
 
 O teste requer o pacote Python Playwright e Chromium. Use `MINERVA_CHROMIUM` para definir outro caminho de navegador e `MINERVA_TEST_URL` para outra origem. Não são dependências da aplicação.
@@ -65,3 +68,5 @@ Documentação em `../../docs/produto` e PDF Minerva Empresa — Neurum fornecid
 A ficha de gestão, a ficha de relacionamento e a ficha operacional são apresentações diferentes para finalidades humanas. O contexto privado de atendimento da IA pertence à operação Minerva e não é incluído nos fixtures nem retornado por uma página de usuário. O contrato proposto, a matriz de perfis e a ligação futura ao Google estão em [Perfis e fichas](docs/perfis-e-fichas.md).
 
 O cabeçalho aceita nome e foto por um adaptador de apresentação, depois de uma sessão validada pelo backend. Login Google real ainda não está configurado. O adaptador não atribui papel nem verifica token.
+
+A suíte `tests/company.py` verifica os 9 marcos médicos e 10 marcos do paciente, taxas calculadas na mesma coorte, filtro de campanha, ausência de denominador, populações abertas a partir dos números, fichas da equipe com escopo individual, popup por hover/teclado/toque e adaptação ao celular. `company.js` contém o cenário fictício e a apresentação dos indicadores; `people-preview.js` controla a prévia não modal.
