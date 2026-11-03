@@ -193,3 +193,50 @@ document.addEventListener('submit',e=>{if(e.target.id==='copilot-form'){e.preven
 document.getElementById('editor').close();render();if(kind==='strategy'){const names=['Neurologia','São Paulo · capital','Psiquiatria','Outros segmentos'];document.getElementById('strategy-distribution').innerHTML=sectionHead('Distribuição ajustada · nesta sessão')+saved.distribution.map((p,i)=>`<div style="margin:20px 0"><div class="metric-label"><span>${names[i]}</span><span>${p}% · ${p*5} médicos</span></div><div class="progress" style="--progress:${p}%"><i></i></div></div>`).join('')}if(!['task','task-edit','person','campaign','strategy','campaign-edit'].includes(kind)){openRecord(title)}else toast('Demonstração salva. Nenhuma ação externa foi executada.')}});
 function openRecord(title){const dialog=document.getElementById('editor');dialog.innerHTML=`<div class="dialog-top"><strong>Registro demonstrativo criado</strong><button class="icon-button" data-close-editor aria-label="Fechar">×</button></div><h2>${esc(title)}</h2><p>O registro foi anotado nesta sessão. Calendário, canais, aprovações e regras de jornada não foram alterados.</p><h3>Registros desta sessão</h3>${saved.records.map(r=>`<div class="list-row"><span>${esc(r.title)}</span><small style="margin-left:auto">${esc(r.kind)}</small></div>`).join('')}`;dialog.showModal()}
 document.addEventListener('keydown',e=>{if((e.metaKey||e.ctrlKey)&&e.key==='k'){e.preventDefault();document.getElementById('search-open').click()}if(e.key==='Escape'&&!document.getElementById('copilot').hidden&&!document.querySelector('dialog[open]'))toggleCopilot(false)});window.addEventListener('hashchange',routeFromHash);routeFromHash();
+
+// Personal account navigation anchored to the user's avatar.
+(() => {
+ const trigger=document.querySelector('.profile');
+ trigger.removeAttribute('data-nav');trigger.id='user-menu-button';
+ trigger.setAttribute('aria-haspopup','menu');trigger.setAttribute('aria-controls','user-menu');trigger.setAttribute('aria-expanded','false');
+ const menu=document.createElement('div');menu.id='user-menu';menu.className='user-menu';menu.hidden=true;
+ document.querySelector('.header-actions').append(menu);
+ const preferenceKey='minerva-user-preferences';
+ let preferences={};try{preferences=JSON.parse(localStorage.getItem(preferenceKey)||'{}')}catch{}
+ document.documentElement.classList.toggle('user-reduced-motion',preferences.reduceMotion===true);
+ function close(restore=false){menu.hidden=true;trigger.setAttribute('aria-expanded','false');if(restore)trigger.focus();}
+ function open(focus=true){
+  const p=currentProfile(),name=sessionIdentity?.name||p.name;
+  menu.innerHTML=`<div class="user-menu-identity"><span class="avatar user-menu-avatar"></span><div><strong>${esc(name)}</strong><small>${esc(p.label)} · ${esc(p.scope)}</small></div></div><div role="menu" aria-label="Menu do usuário"><button role="menuitem" data-account-link="gestao/perfil">${icon('people')} Meu perfil</button><button role="menuitem" data-account-link="gestao/preferencias">${icon('settings')} Preferências</button><button role="menuitem" data-account-link="notificacoes">${icon('bell')} Notificações</button>${state.role==='gestor'?`<div class="user-menu-divider"></div><button role="menuitem" data-account-link="gestao">${icon('shield')} Gestão da empresa</button>`:''}</div>`;
+  menu.querySelector('.user-menu-avatar').replaceChildren(...[...trigger.childNodes].map(n=>n.cloneNode(true)));
+  menu.hidden=false;trigger.setAttribute('aria-expanded','true');if(focus)menu.querySelector('[role=menuitem]').focus();
+ }
+ trigger.addEventListener('click',()=>menu.hidden?open():close(true));
+ menu.addEventListener('click',e=>{const b=e.target.closest('[data-account-link]');if(!b)return;close();navigate(b.dataset.accountLink);document.getElementById('main').focus();});
+ document.addEventListener('click',e=>{if(!menu.hidden&&!menu.contains(e.target)&&!trigger.contains(e.target))close();});
+ document.addEventListener('focusin',e=>{if(!menu.hidden&&!menu.contains(e.target)&&!trigger.contains(e.target))close();});
+ trigger.addEventListener('keydown',e=>{if(['ArrowDown','ArrowUp'].includes(e.key)){e.preventDefault();open();if(e.key==='ArrowUp')menu.querySelector('[role=menuitem]:last-child').focus();}});
+ menu.addEventListener('keydown',e=>{
+  if(e.key==='Escape'){e.preventDefault();e.stopPropagation();close(true);return;}
+  const items=[...menu.querySelectorAll('[role=menuitem]')],i=items.indexOf(document.activeElement);
+  if(['ArrowDown','ArrowUp','Home','End'].includes(e.key)){
+   e.preventDefault();items[e.key==='Home'?0:e.key==='End'?items.length-1:(i+(e.key==='ArrowDown'?1:-1)+items.length)%items.length].focus();
+  }
+ });
+ const originalHeader=profileHeader;
+ profileHeader=function(){originalHeader();trigger.setAttribute('aria-label',`Menu do usuário: ${sessionIdentity?.name||currentProfile().name}`);close();};
+ const originalManagement=management;
+ management=function(){
+  if(state.route==='gestao/perfil')return heading('Meu perfil','Sua identificação e responsabilidade neste workspace.')+`<section class="card"><div class="detail-top"><span class="avatar">${esc((sessionIdentity?.name||currentProfile().name).split(/\s+/).map(x=>x[0]).slice(0,2).join(''))}</span><div><h2>${esc(sessionIdentity?.name||currentProfile().name)}</h2><p>${esc(currentProfile().label)}</p></div></div><div class="detail-grid"><div><small>Workspace</small><strong>Aurora Cannabis · demonstração</strong></div><div><small>Responsabilidade</small><strong>${esc(currentProfile().scope)}</strong></div><div><small>Idioma</small><strong>Português do Brasil</strong></div></div>${btn('Abrir preferências','gestao/preferencias')}</section>`;
+  if(state.route==='gestao/preferencias')return heading('Preferências','Personalize sua experiência neste navegador.')+`<section class="card"><h2>Acessibilidade</h2><label class="user-motion-preference"><input type="checkbox" id="user-reduce-motion" ${preferences.reduceMotion?'checked':''}> Reduzir animações</label><p class="mt">A preferência de movimento reduzido do dispositivo também é respeitada. Esta escolha fica salva neste navegador.</p><div class="actions">${btn('Meu perfil','gestao/perfil')}${btn('Voltar ao painel','inicio')}</div><p id="user-preference-status" role="status"></p></section>`;
+  return originalManagement();
+ };
+ document.addEventListener('change',e=>{
+  if(e.target.id!=='user-reduce-motion')return;
+  preferences.reduceMotion=e.target.checked;document.documentElement.classList.toggle('user-reduced-motion',preferences.reduceMotion);
+  try{localStorage.setItem(preferenceKey,JSON.stringify(preferences));document.getElementById('user-preference-status').textContent='Preferência salva neste navegador.';}
+  catch{document.getElementById('user-preference-status').textContent='Preferência aplicada nesta aba. Não foi possível salvar no navegador.';}
+ });
+ window.addEventListener('hashchange',()=>close());
+ profileHeader();
+})();

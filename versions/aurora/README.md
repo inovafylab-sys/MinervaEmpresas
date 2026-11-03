@@ -93,3 +93,9 @@ O gestor abre um único Painel com as guias **Indicadores**, **Análises e hipó
 Hover/foco numa etapa mostra bases de cálculo, conversão da passagem anterior e desde a entrada, pessoas que ainda não avançaram e alcance da última etapa. Clique/toque abre detalhe lateral, com abas **Análise**, **Hipóteses**, **Experimentos** e **Padrão atual**. No celular, o detalhe ocupa a tela e pode ser fechado para voltar ao painel. Escape fecha o detalhe e devolve o foco. As guias aceitam setas, Home e End.
 
 Hipóteses, experimentos e padrões de referência têm CRUD local, ligados à etapa do funil. As guias gerais exibem os mesmos registros, com filtro por etapa. A análise atual é uma leitura determinística identificada como demonstrativa, sem IA conectada. Não existe histórico comparável, execução de A/B, cálculo de significância ou aplicação de variantes. Não se declara melhora, vencedor nem efeito causal a partir dos exemplos fictícios. Salvar um padrão é documentação local e não configura agentes. A configuração real e a vigência devem vir de integração futura.
+
+## Menu do usuário
+
+A foto ou as iniciais no cabeçalho abrem um dropdown com identidade, Meu perfil, Preferências e Notificações. Gestão da empresa aparece apenas para o gestor. O menu aceita setas, Home/End e Escape, fecha ao clicar/focar fora e devolve o foco ao avatar ao fechar por Escape. Preferência pessoal de redução de animações é salva neste navegador. Não há ação de logout enquanto a autenticação real não estiver integrada.
+
+Validação: `python tests/user_menu.py`.
