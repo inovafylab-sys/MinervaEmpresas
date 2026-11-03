@@ -11,7 +11,7 @@ with sync_playwright() as p:
  expect(page.locator('.dashboard-tabs [aria-selected=true]')).to_have_text('Indicadores')
  expect(page.locator('#route-supervision')).to_have_count(0)
  a=page.locator('.funnel-medicos').bounding_box();z=page.locator('.funnel-pacientes').bounding_box()
- assert abs(a['y']-z['y'])<2 and a['x']+a['width']<=z['x']
+ assert a['y']+a['height']<=z['y'] and abs(a['width']-z['width'])<2
  colors=page.locator('.company-funnel').evaluate_all('(els)=>els.map(e=>getComputedStyle(e).getPropertyValue("--funnel-color"))')
  assert colors[0]!=colors[1]
  stage=page.locator('.funnel-medicos [data-stage=accepted]')

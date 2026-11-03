@@ -88,7 +88,7 @@ Em Pessoas, registre **Aceite para visitas** e **Região de visitas**. Quando a 
 
 ## Aprimoramento dos funis
 
-O gestor abre um único Painel com as guias **Indicadores**, **Análises e hipóteses**, **Experimentos**, **Configuração atual** e **Operação**. Indicadores é a primeira guia e mantém os funis completos lado a lado no desktop: médicos em azul, pacientes em verde. Em telas menores, os funis ficam empilhados.
+O gestor abre um único Painel com as guias **Indicadores**, **Análises e hipóteses**, **Experimentos**, **Configuração atual** e **Operação**. Indicadores é a primeira guia e mostra dois gráficos horizontais de largura completa no desktop: médicos em azul acima e pacientes em verde abaixo. As etapas avançam da esquerda para a direita, com volumes e conversões, e o conjunto cabe no frame inicial em notebooks de 1280×720, 1366×768 e telas de 1440×900. Em telas menores, cada funil mantém suas etapas verticais para preservar a leitura.
 
 Hover/foco numa etapa mostra bases de cálculo, conversão da passagem anterior e desde a entrada, pessoas que ainda não avançaram e alcance da última etapa. Clique/toque abre detalhe lateral, com abas **Análise**, **Hipóteses**, **Experimentos** e **Padrão atual**. No celular, o detalhe ocupa a tela e pode ser fechado para voltar ao painel. Escape fecha o detalhe e devolve o foco. As guias aceitam setas, Home e End.
 
@@ -99,3 +99,9 @@ Hipóteses, experimentos e padrões de referência têm CRUD local, ligados à e
 A foto ou as iniciais no cabeçalho abrem um dropdown com identidade, Meu perfil, Preferências e Notificações. Gestão da empresa aparece apenas para o gestor. O menu aceita setas, Home/End e Escape, fecha ao clicar/focar fora e devolve o foco ao avatar ao fechar por Escape. Preferência pessoal de redução de animações é salva neste navegador. Não há ação de logout enquanto a autenticação real não estiver integrada.
 
 Validação: `python tests/user_menu.py`.
+
+## Diretriz de composição visual
+
+A visualização do conjunto é o objetivo: cada frame/bloco deve apresentar uma unidade completa de informação, priorizando leitura, comparação e espaço horizontal. Evitar listas longas quando os dados podem ser representados por gráficos compactos. Definições, bases e ações ficam em hover/foco ou no detalhe por clique/toque. Resultados da operação formam um segundo bloco, abaixo das jornadas completas. O menu usa ícones circulares, abre espaço para o conteúdo ao expandir e recolhe para ícones após a seleção, sem reter foco no item escolhido.
+
+Validação de composição e navegação: `python tests/navigation_frame.py`.

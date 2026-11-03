@@ -240,3 +240,16 @@ document.addEventListener('keydown',e=>{if((e.metaKey||e.ctrlKey)&&e.key==='k'){
  window.addEventListener('hashchange',()=>close());
  profileHeader();
 })();
+
+
+// Releasing navigation returns the rail to its icon-only state.
+(() => {
+ const rail=document.querySelector('.sidebar');
+ rail.addEventListener('click',e=>{
+  const button=e.target.closest('button[data-nav]');if(!button)return;
+  rail.classList.add('nav-collapsed');button.blur();
+  document.getElementById('main').focus({preventScroll:true});
+ });
+ rail.addEventListener('pointerleave',()=>rail.classList.remove('nav-collapsed'));
+ rail.addEventListener('focusin',()=>rail.classList.remove('nav-collapsed'));
+})();
