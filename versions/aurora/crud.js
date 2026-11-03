@@ -6,6 +6,8 @@
  const appointments=relationshipActivities.map(a=>({...a,title:a.summary,date:'2026-11-03T09:00',result:''}));
  const routes=[],experiments=[],hypotheses=[],standards=[];
  const companyProfile=[{id:'company',name:'Aurora Cannabis',legalName:'',companyId:'',email:'',phone:'',city:'',address:'',website:'',timezone:'America/Sao_Paulo'}];
+ const suppliedLimit=window.MinervaSubscription?.maxSegments;
+ const subscription=Object.freeze({maxSegments:Number.isSafeInteger(suppliedLimit)&&suppliedLimit>=0?suppliedLimit:25});
  const companyRules=[{id:'rules',title:'Regras da operação',monthlyCapacity:500,defaultOwner:'Ana Silva',visitHours:'09:00–18:00',orderInstructions:'',supportInstructions:''}];
  const collections={people:allPeople,campaigns,tasks,orders:allOrders,products,documents,appointments,routes,experiments,hypotheses,standards,companyProfile,companyRules};
  const labels={people:'Pessoas',campaigns:'Campanhas',tasks:'Tarefas',orders:'Pedidos',products:'Produtos',documents:'Documentos',appointments:'Agenda',experiments:'Experimentos',hypotheses:'Hipóteses',standards:'Padrões demonstrativos',companyProfile:'Dados da empresa',companyRules:'Regras da operação'};
@@ -30,7 +32,7 @@
  }
  function store(){
   sync();
-  try{localStorage.setItem(key,JSON.stringify({version:1,...collections,distribution:saved.distribution}));storageError=false;return true;}
+  try{localStorage.setItem(key,JSON.stringify({version:1,...collections,distribution:saved.distribution,segments:saved.segments}));storageError=false;return true;}
   catch{storageError=true;toast('Não foi possível salvar neste navegador. As alterações só duram nesta aba.');return false;}
  }
  persist=()=>{store();};
@@ -90,8 +92,59 @@
   const funnel=`<section class="funnel-frame" data-dashboard-area="jornadas"><header class="funnel-frame-header"><div><h2>Comercial · médicos e pacientes</h2><small>Etapas e conversões da mesma coorte · demonstração</small></div><label>Origem<select id="analytics-campaign" aria-label="Campanha dos indicadores"><option value="all">Todas as campanhas</option>${campaigns.map(c=>`<option value="${c.id}" ${(state.analyticsCampaign||'all')===c.id?'selected':''}>${esc(c.name)}</option>`).join('')}</select></label></header>${template.querySelector('.company-funnels').outerHTML}</section>`;
   return head+`<div data-dashboard-area="resumo">${template.querySelector('.grid.four').outerHTML}</div>`+attentionBlocks()+funnel+`<div data-dashboard-area="campanhas">${campaignResultsTable()}</div><div data-dashboard-area="logistica">${logistics?.outerHTML||''}</div><div data-dashboard-area="equipe">${teamPerformance()}</div>`+routeSupervision()+dashboardTasks();
  };
- const originalStrategy=strategy;
- strategy=function(){const capacity=companyRules[0]?.monthlyCapacity??500;return originalStrategy().replace('500 novos médicos',capacity+' novos médicos').replace('<strong>500</strong>','<strong>'+capacity+'</strong>').replace(/(\d+)% · \d+ médicos/g,(_,percent)=>percent+'% · '+Math.round(Number(percent)*capacity/100)+' médicos');};
+ const legacySegmentNames=['Neurologia','São Paulo · capital','Psiquiatria','Outros segmentos'];
+ const segmentPercent=value=>Number(value).toLocaleString('pt-BR',{maximumFractionDigits:2});
+ function segmentPoints(raw){
+  const value=String(raw).trim();if(!/^\d+(?:\.\d{1,2})?$/.test(value))return null;
+  const [whole,fraction='']=value.split('.');const points=Number(whole)*100+Number(fraction.padEnd(2,'0'));
+  return Number.isSafeInteger(points)&&points>0&&points<=10000?points:null;
+ }
+ function getSegments(){
+  if(!Array.isArray(saved.segments))saved.segments=(saved.distribution||[30,25,25,20]).map((percent,i)=>({id:uid(),name:legacySegmentNames[i]||`Segmentação ${i+1}`,percent}));
+  return saved.segments;
+ }
+ strategy=function(){
+  const capacity=companyRules[0]?.monthlyCapacity??500,records=getSegments(),total=records.reduce((sum,r)=>sum+(segmentPoints(r.percent)||0),0),remaining=Math.max(0,10000-total);
+  return heading('Distribuição comercial',`${capacity} novos médicos por ciclo · até ${subscription.maxSegments} segmentações no plano atual.`,`<button class="btn primary" data-edit="strategy">${icon('target')} Ajustar distribuição</button>`)+
+   `<div class="grid three segment-overview"><section class="card"><small>Distribuído</small><div class="metric-value">${segmentPercent(total/100)}%</div></section><section class="card"><small>Disponível</small><div class="metric-value">${segmentPercent(remaining/100)}%</div></section><section class="card"><small>Segmentações do plano</small><div class="metric-value">${records.length} / ${subscription.maxSegments}</div></section></div><section class="card mt" id="strategy-distribution">${sectionHead(total===10000?'Distribuição completa':'Distribuição em rascunho')}<p class="funnel-caption">${total===10000?'100% da capacidade distribuída.':`Ainda há ${segmentPercent(remaining/100)}% para distribuir.`} Dados demonstrativos, salvos neste navegador.</p>${records.map(r=>`<div class="segment-summary"><div class="metric-label"><button data-nav="segmento/${encodeURIComponent(r.name)}">${esc(r.name)} ↗</button><span>${segmentPercent(r.percent)}% · ${Math.round(Number(r.percent)*capacity/100)} médicos</span></div><div class="progress" style="--progress:${Number(r.percent)||0}%"><i></i></div></div>`).join('')||'<p>Nenhuma segmentação definida.</p>'}${records.length>subscription.maxSegments?notice('A distribuição excede o limite do plano atual. Edite as segmentações para adequá-la.'):''}</section>`;
+ };
+ function segmentRow(record={id:uid(),name:'',percent:''}){
+  return `<div class="segment-row" data-segment-id="${esc(record.id||uid())}"><label>Segmentação<input name="segment-name" maxlength="120" placeholder="Adicionar segmentação" value="${esc(record.name)}"></label><label>Percentual (%)<input name="segment-percent" type="number" min="0.01" max="100" step="0.01" inputmode="decimal" placeholder="0" value="${esc(record.percent)}"></label><button class="icon-button" type="button" data-remove-segment aria-label="Remover segmentação">×</button></div>`;
+ }
+ function segmentRows(form){return [...form.querySelectorAll('.segment-row')].map(el=>({el,id:el.dataset.segmentId,name:el.querySelector('[name=segment-name]').value.trim(),raw:el.querySelector('[name=segment-percent]').value}));}
+ function updateSegmentEditor(){
+  const form=document.getElementById('distribution-form');if(!form)return;
+  const rows=segmentRows(form),filled=rows.filter(r=>r.name||r.raw),empty=rows.filter(r=>!r.name&&!r.raw),total=filled.reduce((n,r)=>n+(segmentPoints(r.raw)||0),0),room=total<10000&&filled.length<subscription.maxSegments;
+  if(room){if(!empty.length)form.querySelector('#segment-rows').insertAdjacentHTML('beforeend',segmentRow());else empty.slice(1).forEach(r=>r.el.remove());}
+  else empty.forEach(r=>r.el.remove());
+  document.getElementById('segment-total').textContent=segmentPercent(total/100)+'%';
+  document.getElementById('segment-remaining').textContent=segmentPercent(Math.max(0,10000-total)/100)+'%';
+  document.getElementById('segment-count').textContent=filled.length+' / '+subscription.maxSegments;
+  document.getElementById('segment-open-note').textContent=total>10000?'A distribuição ultrapassa 100%. Reduza os percentuais.':total===10000?'100% distribuído. Para adicionar uma segmentação, libere percentual em uma existente.':filled.length>=subscription.maxSegments?`Limite de ${subscription.maxSegments} segmentações atingido. Distribua o percentual restante entre as existentes ou remova uma delas.`:'A linha em aberto permanece disponível enquanto houver percentual e vagas no plano.';
+  document.getElementById('distribution-error').textContent=total>10000?'A soma não pode ultrapassar 100%.':'';
+ }
+ function openSegmentEditor(){
+  if(state.role!=='gestor')return toast('Ação fora do escopo.');
+  const d=closeDialog();
+  d.innerHTML=`<form id="distribution-form"><div class="dialog-top"><strong>Ajustar distribuição</strong><button class="icon-button" type="button" data-close-editor aria-label="Fechar">×</button></div><p class="segment-plan-note">Plano atual: até ${subscription.maxSegments} segmentações. Você pode salvar uma distribuição parcial como rascunho.</p><div class="segment-editor-totals" aria-live="polite"><span>Distribuído<strong id="segment-total"></strong></span><span>Restante<strong id="segment-remaining"></strong></span><span>Segmentações<strong id="segment-count"></strong></span></div><div id="segment-rows">${getSegments().map(segmentRow).join('')}</div><p id="segment-open-note" class="segment-plan-note"></p><p id="distribution-error" role="alert"></p><div class="actions"><button class="btn primary" type="submit">Salvar distribuição</button><button class="btn" type="button" data-close-editor>Cancelar</button></div></form>`;
+  updateSegmentEditor();d.showModal();
+ }
+ document.addEventListener('input',e=>{if(e.target.closest('#distribution-form'))updateSegmentEditor();});
+ document.addEventListener('click',e=>{
+  const button=e.target.closest('[data-remove-segment]');if(!button)return;
+  const form=button.closest('form');button.closest('.segment-row').remove();updateSegmentEditor();form.querySelector('.segment-row:last-child input')?.focus();
+ });
+ document.addEventListener('submit',e=>{
+  if(e.target.id!=='distribution-form')return;e.preventDefault();e.stopImmediatePropagation();if(state.role!=='gestor')return;
+  const rows=segmentRows(e.target).filter(r=>r.name||r.raw),error=message=>document.getElementById('distribution-error').textContent=message;
+  if(rows.length>subscription.maxSegments)return error(`O plano permite no máximo ${subscription.maxSegments} segmentações.`);
+  if(rows.some(r=>!r.name||segmentPoints(r.raw)===null))return error('Preencha nome e percentual entre 0,01% e 100%, com até duas casas decimais, ou remova a linha incompleta.');
+  const names=rows.map(r=>r.name.replace(/\s+/g,' ').normalize('NFC').toLocaleLowerCase('pt-BR'));
+  if(new Set(names).size!==names.length)return error('Use nomes diferentes para cada segmentação.');
+  const total=rows.reduce((sum,r)=>sum+segmentPoints(r.raw),0);if(total>10000)return error('A soma não pode ultrapassar 100%.');
+  saved.segments=rows.map(r=>({id:r.id,name:r.name,percent:segmentPoints(r.raw)/100}));saved.distribution=saved.segments.map(r=>r.percent);
+  const persisted=store();closeDialog();render();toast(persisted?(total===10000?'Distribuição completa salva neste navegador.':'Rascunho salvo. Há percentual disponível para distribuir.'):'Alteração temporária: armazenamento indisponível.');
+ },true);
  const personalManagement=management;
  window.MinervaWorkspaceName=()=>companyProfile[0]?.name||'Minha empresa';
  management=function(){
@@ -101,7 +154,7 @@
   const configCard=(title,description,buttons)=>`<section class="card config-card"><h2>${title}</h2><p>${description}</p><div class="actions">${buttons}</div></section>`;
   return heading('Configurações da empresa','Cadastros, regras e conteúdo editáveis em um só lugar.')+`<div class="settings-banner"><span>${esc(company.name)}</span><small>Alterações desta versão são salvas neste navegador.</small></div><div class="grid two config-grid">`+
    configCard('Empresa','Identidade, razão social, CNPJ, contatos, endereço, site e fuso horário.',action('companyProfile','company','Editar dados da empresa'))+
-   configCard('Comercial e atendimento',`Capacidade mensal: ${esc(rules.monthlyCapacity)} médicos. Responsável padrão, horário de visitas e orientações da operação.`,action('companyRules','rules','Editar regras')+btn('Distribuição e segmentos','estrategia')+action('campaigns','','Gerenciar campanhas'))+
+   configCard('Comercial e atendimento',`Capacidade mensal: ${esc(rules.monthlyCapacity)} médicos. Limite do plano: ${subscription.maxSegments} segmentações. Responsável padrão e orientações da operação.`,action('companyRules','rules','Editar regras')+btn('Distribuição e segmentos','estrategia')+action('campaigns','','Gerenciar campanhas'))+
    configCard('Equipe e responsabilidades','Cadastro de colaboradores, função e responsáveis pelas carteiras e pedidos.',btn('Ver equipe','gestao/equipe')+'<button class="btn" data-new-employee>Novo colaborador</button>'+action('people','','Gerenciar pessoas'))+
    configCard('Catálogo e estoque','Produtos, apresentações, preços e saldos demonstrativos.',action('products','','Editar produtos')+btn('Ver estoque','estoque'))+
    configCard('Pedidos e agenda','Responsáveis, estados operacionais, rastreio e atividades agendadas.',action('orders','','Gerenciar pedidos')+action('appointments','','Gerenciar agenda')+btn('Rotas e aceites','visitas'))+
@@ -287,7 +340,7 @@
   if(b.id==='reset-demo'){
    e.preventDefault();e.stopImmediatePropagation();localStorage.removeItem('minerva-aurora-demo');localStorage.removeItem(key);location.reload();return;
   }
-  if(b.dataset.edit==='strategy')return;
+  if(b.dataset.edit==='strategy'){e.preventDefault();e.stopImmediatePropagation();openSegmentEditor();return;}
   if(b.dataset.task!==undefined||legacy[b.dataset.edit]){
    e.preventDefault();e.stopImmediatePropagation();
    name=b.dataset.task!==undefined?'tasks':legacy[b.dataset.edit];
@@ -296,7 +349,7 @@
   }
  },true);
  document.addEventListener('submit',e=>{
-  if(e.target.id==='editor-form'&&e.target.dataset.kind==='strategy')setTimeout(()=>{store();render();},0);
+
   if(e.target.id!=='crud-form')return;
   e.preventDefault();e.stopImmediatePropagation();
   const form=e.target,name=form.dataset.collection,id=form.dataset.record,arr=collections[name],existing=arr.find(r=>r.id===id);
@@ -322,6 +375,6 @@
   const persisted=store();closeDialog();render();toast(persisted?'Registro salvo neste navegador.':'Alteração temporária: não foi possível persistir.');
  },true);
  // Preserve a previous strategy selection without letting task saves erase it.
- try{const stored=JSON.parse(localStorage.getItem(key)||'null');if(Array.isArray(stored?.distribution))saved.distribution=stored.distribution;}catch{}
+ try{const stored=JSON.parse(localStorage.getItem(key)||'null');if(Array.isArray(stored?.distribution))saved.distribution=stored.distribution;if(Array.isArray(stored?.segments))saved.segments=stored.segments;}catch{}
  sync();render();
 })();

@@ -74,6 +74,15 @@ python tests/navigation_frame.py
 python tests/dashboard_settings.py
 python tests/floating_nav.py
 python tests/page_transition.py
+python tests/segments.py
 ```
 
 As verificações de perfis validam apenas apresentação e escopo da demonstração, não autorização de backend.
+
+## Distribuição e limite da assinatura
+
+O plano desta demonstração permite **25 segmentações**. O limite da assinatura é separado das regras editáveis da empresa; a aplicação pode fornecer outro limite em `window.MinervaSubscription.maxSegments` antes de carregar o frontend. Isso é um contrato de demonstração: uma integração de produção deverá carregar e validar o plano no backend.
+
+Cada segmentação possui nome e percentual editáveis, com opção de remoção. O editor mantém exatamente uma linha vazia enquanto a soma for menor que 100% e o número de linhas preenchidas for menor que o limite do plano. Ao atingir qualquer limite, a linha vazia é retirada; reduzir um percentual ou remover uma segmentação a restaura quando houver ambas as disponibilidades. A tela mostra total, saldo e vagas do plano em tempo real.
+
+Percentuais usam até duas casas decimais, somados em centésimos para evitar erros de ponto flutuante. A soma não pode ultrapassar 100% e nomes duplicados não são aceitos. Distribuições parciais podem ser salvas como rascunho; não são exibidas como completas nem executam aquisição. As distribuições antigas de quatro percentuais são migradas preservando os valores e os nomes de referência. Nomes e percentuais novos são persistidos no navegador.
