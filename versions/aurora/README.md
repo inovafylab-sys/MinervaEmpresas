@@ -1,0 +1,59 @@
+# Minerva Aurora — nova versão do Workspace
+
+Interface criada do zero, em diretório independente. Os documentos existentes foram preservados. Não havia código da versão Replit no checkout nem em outra branch remota durante esta implementação; portanto essa versão não foi importada ou alterada.
+
+A inspiração das referências é a identidade tecnológica. A composição é original: luz azul difusa em fundo preto, painéis de vidro fosco, bordas delicadas, letras claras e espaços amplos. Nenhuma imagem do PDF foi reproduzida na interface.
+
+## Executar
+
+Sem dependências de produção, instalação de pacotes ou build:
+
+```bash
+cd /workspace/MinervaEmpresas/versions/aurora
+python -m http.server 4173 --bind 127.0.0.1
+```
+
+Abra o servidor em um navegador compatível. Também é possível servir a pasta com qualquer servidor estático. Não precisa de credenciais. Rotas usam hash, permitindo links diretos e recarregamento sem configuração de fallback. Fontes, ícones vetoriais e fundos são locais; não há CDN ou importação externa.
+
+## Páginas
+
+- Visão geral e Indicadores.
+- Estratégia, distribuição validada em 100% e segmentação contextual.
+- Campanhas, filtros, criação local e ficha da campanha.
+- Pessoas, filtros, criação local, fichas e atividades.
+- Conversas com composição de mensagens explicitamente não enviadas.
+- Reuniões, calendário demonstrativo, preparação e registro de resultado.
+- Visitas, mapa conceitual, roteiro e registro de resultado.
+- Quadros com criação, alteração de estado e persistência local das tarefas.
+- Pedidos, ficha, detalhe de pagamento, envio, catálogo, produto, estoque e movimentos.
+- Prévias de catálogo e pagamento do paciente, acessíveis pela busca global.
+- Cérebro: identidade, manuais, conhecimento, memória, decisões, fontes e versões.
+- Gestão: empresa, equipe, permissões explicativas, conexões, plano e preferências.
+- Notificações e proposta de aprovação.
+- Apresentação do sistema em oito etapas, orientada pelo material Neurum.
+
+Apenas uma página ocupa a área principal. Fichas substituem a página principal e têm navegação de retorno. O Copilot é aberto pelo cabeçalho e permanece ao lado da página no desktop; em telas pequenas usa painel sobreposto. O menu mantém altura fixa e expande por hover ou foco do teclado. Busca global: botão no cabeçalho ou Ctrl/Cmd+K. A preferência do dispositivo por movimento reduzido é respeitada.
+
+## Limites reais
+
+Esta entrega é uma versão navegável de frontend com dados fictícios sinalizados. Não há autenticação, autorização, IA real, API CEBD, WhatsApp, Telegram, calendário, checkout, envio ou prospecção conectados. As abas de permissões explicam responsabilidades; não são um controle de segurança implementado. Catálogo e checkout do paciente são prévias de apresentação e não devem ser usados para dados reais.
+
+O Copilot é um demonstrador determinístico de navegação: entende comandos como “abra os pedidos”, abre a página e explica o contexto. Não executa ações externas e não usa LLM.
+
+Tarefas persistem no armazenamento deste navegador. Pessoas, campanhas, mensagens, distribuição e demais registros locais duram somente a sessão. Registros de reunião, visita e propostas são apresentados em um comprovante local, sem alterar jornadas ou calendário. Dados clínicos, confirmação de pagamento e regras comerciais não são inferidos pelo frontend. O backend deverá fornecer identidade, autorização, validações e evidências antes de qualquer uso operacional.
+
+## Validação
+
+```bash
+node --check app.js
+# Em outro terminal, com o servidor acima ativo:
+python tests/smoke.py
+```
+
+O teste requer o pacote Python Playwright e Chromium. Use `MINERVA_CHROMIUM` para definir outro caminho de navegador e `MINERVA_TEST_URL` para outra origem. Não são dependências da aplicação.
+
+O teste percorre as 43 rotas principais e contextuais, valida página única, busca, filtros e estado vazio, criação segura de pessoa, persistência e edição de tarefas, soma da estratégia, navegação do Copilot, mensagens não enviadas, seis abas de Gestão, oito slides, hover do menu e ausência de overflow de página no mobile. Capturas de revisão são produzidas em `/tmp`.
+
+## Referências
+
+Documentação em `../../docs/produto` e PDF Minerva Empresa — Neurum fornecido pelo proprietário. As definições atuais do proprietário prevalecem: identidade tech como inspiração, uma página por vez e botão do Copilot no cabeçalho.
