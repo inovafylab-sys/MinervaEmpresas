@@ -76,6 +76,7 @@ python tests/floating_nav.py
 python tests/page_transition.py
 python tests/segments.py
 python tests/footer.py
+python tests/funnel_tooltip.py
 ```
 
 As verificações de perfis validam apenas apresentação e escopo da demonstração, não autorização de backend.
@@ -93,3 +94,5 @@ Percentuais usam até duas casas decimais, somados em centésimos para evitar er
 O rodapé está no fluxo da página, depois da área principal, sem posição fixa ou sobreposição. Mesmo nas páginas curtas ele fica abaixo do frame inicial; aparece ao chegar ao fim da rolagem. A área de trabalho deixa de reservar espaço para um rodapé fixo, e o menu flutuante passa a ocupar a altura até próximo da borda inferior da janela.
 
 Por orientação do proprietário, os ícones iniciais ficam **sem endereços**, como elementos visuais não clicáveis e sem tabulação. Os espaços iniciais são Site, Instagram, LinkedIn, WhatsApp e E-mail. Em Configurações da empresa → Empresa → Editar links do rodapé, o gestor pode criar, editar e remover esses itens e escolher um ícone. Endereços são opcionais; quando cadastrados, são validados e habilitam o link. São permitidos HTTP/HTTPS, mailto, tel e páginas internas; esquemas executáveis são rejeitados. Links externos abrem em outra aba com `noopener noreferrer`. Destinos, nomes e ícones continuam locais à demonstração.
+
+Os detalhes de hover/foco dos funis são desenhados em uma camada fixa fora dos cards, para não ficarem atrás dos painéis com efeito de vidro. O posicionamento é limitado à área visível, respeita o cabeçalho e se ajusta durante a rolagem. Escape, saída do ponteiro, troca de página e abertura do detalhe por clique dispensam o hover.

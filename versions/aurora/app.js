@@ -273,3 +273,38 @@ document.addEventListener('keydown',e=>{if((e.metaKey||e.ctrlKey)&&e.key==='k'){
   if(window.MinervaWorkspaceName)document.querySelector('.workspace-label').textContent=window.MinervaWorkspaceName();
  };
 })();
+
+// Render funnel hover details outside cards so glass panels cannot cover them.
+(() => {
+ const tooltip=document.createElement('div');tooltip.id='funnel-floating-tooltip';tooltip.className='funnel-floating-tooltip';tooltip.setAttribute('role','tooltip');tooltip.hidden=true;document.body.append(tooltip);
+ let active=null,previousDescription='';
+ function hide(){
+  if(active){if(previousDescription)active.setAttribute('aria-describedby',previousDescription);else active.removeAttribute('aria-describedby');}
+  active=null;tooltip.hidden=true;
+ }
+ function show(button){
+  const source=button.parentElement.querySelector('.funnel-stage-tooltip');if(!source)return;
+  if(active!==button){hide();active=button;previousDescription=button.getAttribute('aria-describedby')||'';}
+  tooltip.innerHTML=source.innerHTML;tooltip.style.setProperty('--tooltip-accent',getComputedStyle(button.closest('.company-funnel')).getPropertyValue('--funnel-color')||'#82adff');
+  button.setAttribute('aria-describedby',tooltip.id);tooltip.hidden=false;
+  const rect=button.getBoundingClientRect(),headerBottom=document.querySelector('.topbar').getBoundingClientRect().bottom,padding=12,minTop=headerBottom+8;
+  tooltip.style.maxHeight=Math.max(80,innerHeight-minTop-padding)+'px';
+  const box=tooltip.getBoundingClientRect();
+  const left=Math.max(padding,Math.min(rect.left,innerWidth-box.width-padding));
+  const below=rect.bottom+8,above=rect.top-box.height-8;
+  const top=below+box.height<=innerHeight-padding?below:above>=minTop?above:Math.max(minTop,innerHeight-box.height-padding);
+  tooltip.style.left=left+'px';tooltip.style.top=top+'px';
+ }
+ document.addEventListener('pointerover',e=>{const button=e.target.closest('.funnel-stage');if(button)show(button);});
+ document.addEventListener('pointerout',e=>{if(active&&active.contains(e.target)&&!active.contains(e.relatedTarget)&&document.activeElement!==active)hide();});
+ document.addEventListener('focusin',e=>{const button=e.target.closest('.funnel-stage');if(button)show(button);else hide();});
+ document.addEventListener('click',hide,true);
+ document.addEventListener('input',hide,true);document.addEventListener('change',hide,true);
+ document.addEventListener('keydown',e=>{if(e.key==='Escape')hide();});
+ window.addEventListener('scroll',()=>{
+  if(!active)return;
+  const rect=active.getBoundingClientRect(),headerBottom=document.querySelector('.topbar').getBoundingClientRect().bottom;
+  if(!active.isConnected||rect.bottom<=headerBottom||rect.top>=innerHeight)hide();else show(active);
+ },true);
+ window.addEventListener('resize',hide);window.addEventListener('hashchange',hide);
+})();
