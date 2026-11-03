@@ -54,7 +54,7 @@ Fluxo de produto previsto: Nova rota ou pedido ao Copilot → sugestão de médi
 
 A visualização do conjunto é o objetivo: cada bloco apresenta uma unidade completa de informação. Cabeçalhos compactos reservam espaço para os dados. A entrada mostra números, avisos, tarefas e atividades; as áreas seguintes aprofundam a operação. Experimentos não fazem parte desta versão.
 
-O menu é ordenado por perfil, usa ícones circulares, expande por hover/foco deslocando o conteúdo e recolhe após a seleção. Seu espaçamento permite ver os itens em alturas comuns de notebook sem rolar. A foto/iniciais do cabeçalho abrem o dropdown pessoal com perfil, preferências e notificações; o gestor também acessa as configurações da empresa. Escape e clique fora fecham o dropdown; navegação por teclado e movimento reduzido são suportados.
+O menu é ordenado por perfil, sem painel retangular de fundo: círculos flutuantes maiores, com contraste e destaque do item ativo. Todos os círculos ficam no mesmo eixo do logo do cabeçalho, com espaçamento uniforme entre itens e margens simétricas na área entre cabeçalho e rodapé. A altura disponível fica fixa durante a navegação. O hover/foco expande os rótulos deslocando o conteúdo; a seleção recolhe o menu. Seu espaçamento permite ver os itens em alturas comuns de notebook sem rolar. A foto/iniciais do cabeçalho abrem o dropdown pessoal com perfil, preferências e notificações; o gestor também acessa as configurações da empresa. Escape e clique fora fecham o dropdown; navegação por teclado e movimento reduzido são suportados. A troca de página tem uma entrada deslizante de 240 ms somente no conteúdo principal; filtros e edições não repetem o efeito. Preferências de movimento reduzido do dispositivo e do usuário desativam a transição.
 
 ## Validação
 
@@ -72,6 +72,8 @@ python tests/routes.py
 python tests/user_menu.py
 python tests/navigation_frame.py
 python tests/dashboard_settings.py
+python tests/floating_nav.py
+python tests/page_transition.py
 ```
 
 As verificações de perfis validam apenas apresentação e escopo da demonstração, não autorização de backend.

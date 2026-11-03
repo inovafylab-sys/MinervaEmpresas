@@ -54,10 +54,18 @@ function notFound(){return heading('Página não encontrada','Este recurso não 
 function baseRender(){const [r,id]=state.route.split('/');let content;switch(r){case'inicio':content=overview();break;case'indicadores':content=indicators();break;case'estrategia':content=strategy();break;case'campanhas':content=id?campaignDetail(id):campaignPage();break;case'pessoas':content=id?personDetail(id):peoplePage();break;case'conversas':content=conversations(id);break;case'reunioes':content=meetings(id);break;case'visitas':content=visits(id);break;case'quadros':content=boards();break;case'tarefas':content=tasksPage();break;case'pedidos':content=id?orderDetail(id):orderPage();break;case'catalogo':content=catalog();break;case'estoque':content=catalog(true);break;case'catalogo-cliente':content=catalog(false,true);break;case'cerebro':content=id?brainDetail(id):brainPage();break;case'gestao':content=management();break;case'apresentacao':content=presentation();break;case'notificacoes':content=notifications();break;default:content=contextual(r,id)}document.getElementById('main').innerHTML=content;document.querySelectorAll('#navigation button').forEach(b=>{const active=b.dataset.nav===(r==='indicadores'?'inicio':r);b.classList.toggle('active',active);if(active)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current')});document.getElementById('copilot-context').textContent=`Contexto selecionado · ${pages.find(p=>p[0]===r)?.[2]||document.querySelector('h1')?.textContent||'Workspace'}`;document.title=`${document.querySelector('h1')?.textContent||'Workspace'} · Minerva`;}
 function navigate(route){if(!canOpen(route)){toast('Página fora do escopo deste perfil.');return;}if(location.hash.slice(1)===route){state.route=route;state.filter=route==='campanhas'?'Todas':'Todos';state.query='';render()}else location.hash=route}
 function routeFromHash(){
+ const previousRoute=state.route;
  if(state.route==='pessoas')peopleCollectionState={filter:state.filter,query:state.query,facets:{...state.facets},preview:state.preview};
  state.route=location.hash.slice(1)||'inicio';state.facets={};state.preview=null;state.filter=state.route==='campanhas'?'Todas':'Todos';state.query='';
  if(state.route==='pessoas'&&peopleCollectionState)Object.assign(state,{...peopleCollectionState,facets:{...peopleCollectionState.facets}});
  render();window.scrollTo(0,0);
+ if(previousRoute!==state.route)animatePageTransition();
+}
+function animatePageTransition(){
+ const main=document.getElementById('main');
+ main.getAnimations().forEach(animation=>animation.cancel());
+ if(matchMedia('(prefers-reduced-motion: reduce)').matches||document.documentElement.classList.contains('user-reduced-motion'))return;
+ main.animate([{opacity:.45,transform:'translateX(12px)'},{opacity:1,transform:'translateX(0)'}],{duration:240,easing:'cubic-bezier(.2,.7,.2,1)'});
 }
 function toggleCopilot(open){document.getElementById('copilot').hidden=!open;document.getElementById('workspace').classList.toggle('has-copilot',open);document.getElementById('copilot-toggle').setAttribute('aria-expanded',String(open));if(open)document.getElementById('copilot-input').focus()}
 let toastTimer;function toast(text){const t=document.getElementById('toast');t.textContent=text;t.classList.add('visible');clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove('visible'),4000)}
