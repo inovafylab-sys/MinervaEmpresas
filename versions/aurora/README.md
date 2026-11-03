@@ -77,6 +77,7 @@ python tests/page_transition.py
 python tests/segments.py
 python tests/footer.py
 python tests/funnel_tooltip.py
+python tests/strategy_pie.py
 ```
 
 As verificações de perfis validam apenas apresentação e escopo da demonstração, não autorização de backend.
@@ -96,3 +97,5 @@ O rodapé está no fluxo da página, depois da área principal, sem posição fi
 Por orientação do proprietário, os ícones iniciais ficam **sem endereços**, como elementos visuais não clicáveis e sem tabulação. Os espaços iniciais são Site, Instagram, LinkedIn, WhatsApp e E-mail. Em Configurações da empresa → Empresa → Editar links do rodapé, o gestor pode criar, editar e remover esses itens e escolher um ícone. Endereços são opcionais; quando cadastrados, são validados e habilitam o link. São permitidos HTTP/HTTPS, mailto, tel e páginas internas; esquemas executáveis são rejeitados. Links externos abrem em outra aba com `noopener noreferrer`. Destinos, nomes e ícones continuam locais à demonstração.
 
 Os detalhes de hover/foco dos funis são desenhados em uma camada fixa fora dos cards, para não ficarem atrás dos painéis com efeito de vidro. O posicionamento é limitado à área visível, respeita o cabeçalho e se ajusta durante a rolagem. Escape, saída do ponteiro, troca de página e abertura do detalhe por clique dispensam o hover.
+
+A Estratégia mantém o gráfico em pizza/rosca da distribuição, com cores e legenda correspondentes às segmentações salvas. Rascunhos mostram a fatia ainda não distribuída em cinza. O centro apresenta a capacidade mensal configurada, e cada fatia expõe nome e percentual. O gráfico acompanha edições, remoções e o recarregamento da página.
