@@ -3,7 +3,7 @@ import os
 from playwright.sync_api import sync_playwright
 
 BASE = os.environ.get('MINERVA_TEST_URL', 'http://127.0.0.1:4173')
-ROUTES = ['inicio','indicadores','estrategia','segmento/Neurologia','campanhas','campanhas/ansiedade','pessoas','pessoas/marina','pessoas/ana','atividades/marina','conversas','conversas/ana','reunioes','reunioes/juliana','visitas','visitas/marina','quadros','pedidos','pedidos/1043','pagamento/1043','envio/1041','catalogo','estoque','produto/cbd5','movimentos/cbd5','catalogo-cliente','checkout/1043','cerebro','cerebro/identidade','cerebro/manual-medico','cerebro/manual-paciente','cerebro/manual-equipe','cerebro/conhecimento','cerebro/juridico','cerebro/memoria','cerebro/decisoes','cerebro/fontes','fontes','versoes/manual-medico','gestao','apresentacao','notificacoes','aprovacoes/manual']
+ROUTES = ['inicio','indicadores','estrategia','segmento/Neurologia','campanhas','campanhas/ansiedade','pessoas','pessoas/marina','pessoas/ana','atividades/marina','conversas','conversas/ana','reunioes','reunioes/juliana','visitas','visitas/marina','quadros','tarefas','pedidos','pedidos/1043','pagamento/1043','envio/1041','catalogo','estoque','produto/cbd5','movimentos/cbd5','catalogo-cliente','checkout/1043','cerebro','cerebro/identidade','cerebro/manual-medico','cerebro/manual-paciente','cerebro/manual-equipe','cerebro/conhecimento','cerebro/juridico','cerebro/memoria','cerebro/decisoes','cerebro/fontes','fontes','versoes/manual-medico','gestao','apresentacao','notificacoes','aprovacoes/manual']
 with sync_playwright() as p:
     browser = p.chromium.launch(executable_path=os.environ.get('MINERVA_CHROMIUM', '/usr/bin/chromium'), headless=True, args=['--no-sandbox'])
     page = browser.new_page(viewport={'width':1440,'height':1000}, reduced_motion='reduce')
@@ -21,6 +21,7 @@ with sync_playwright() as p:
         assert 'Página não encontrada' not in page.locator('h1').inner_text(), route
     print(f'PASS: {len(ROUTES)} routes render one primary page')
     go('pessoas')
+    page.locator('[data-view=Lista]').click()
     page.locator('[data-search]').fill('Marina Costa')
     assert page.locator('tbody tr').count()==1
     page.locator('[data-search]').fill('inexistente')
@@ -32,7 +33,7 @@ with sync_playwright() as p:
     assert page.locator('tbody tr').count()==1
     assert page.locator('tbody script').count()==0
     print('PASS: filtering, empty state, safe local creation')
-    go('quadros')
+    go('tarefas')
     page.get_by_role('button',name='Nova tarefa',exact=True).click()
     page.locator('[name=title]').fill('Tarefa de teste persistente')
     page.locator('#editor-form button[type=submit]').click()
