@@ -14,7 +14,7 @@ with sync_playwright() as p:
         page.wait_for_function('(r)=>state.route===r',arg=route)
     def role(value):
         page.locator('#profile-select').select_option(value)
-        page.wait_for_function('(r)=>state.role===r && document.querySelector("h1").textContent.startsWith("Olá")',arg=value)
+        page.wait_for_function('(r)=>state.role===r && document.querySelector("h1").textContent.startsWith("Painel")',arg=value)
     def menu(route):
         return page.locator(f'#navigation [data-nav="{route}"]')
 

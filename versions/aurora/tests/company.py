@@ -11,6 +11,7 @@ with sync_playwright() as p:
  def go(route):
   page.goto(f'{BASE}/#{route}')
   page.wait_for_function('(r)=>state.route===r',arg=route)
+  if route in ['inicio','indicadores']:page.locator('[data-dashboard-tab=Indicadores]').click()
  go('indicadores')
  expect(page.locator('.company-funnel')).to_have_count(2)
  expect(page.locator('.company-funnel').nth(0).locator('.funnel-stage')).to_have_count(9)
@@ -26,6 +27,7 @@ with sync_playwright() as p:
  assert page.evaluate("funnelRows(companyScope().patients,patientStages).find(r=>r.key==='paid').rate")==50
  assert 'R$ 1.167,00' in page.locator('main').inner_text().replace('\xa0',' ')
  page.locator('.company-funnel').first.locator('[data-stage=accepted]').click()
+ page.locator('#indicator-detail [data-close-indicator][data-nav]').click()
  page.wait_for_url('**/#funil-medicos/accepted')
  expect(page.locator('main .person-preview-card')).to_have_count(1)
  assert 'Marina' in page.locator('main').inner_text()
@@ -33,13 +35,16 @@ with sync_playwright() as p:
  page.locator('#analytics-campaign').select_option('neurologia')
  assert page.locator('.company-funnel').first.locator('[data-stage=identified]').get_attribute('data-count')=='2'
  assert page.locator('.company-funnel').first.locator('[data-stage=accepted]').get_attribute('data-count')=='0'
+ page.locator('[data-dashboard-tab=Operação]').click()
  expect(page.locator('[data-campaign-result]')).to_have_count(1)
  assert 'Novos caminhos' in page.locator('[data-campaign-result]').inner_text()
+ page.locator('[data-dashboard-tab=Indicadores]').click()
  page.locator('#analytics-campaign').select_option('sono')
  assert '—' in page.locator('.funnel-rate').nth(1).inner_text()
  assert 'NaN' not in page.locator('main').inner_text()
  assert 'Infinity' not in page.locator('main').inner_text()
  page.locator('.company-funnel').first.locator('[data-stage=identified]').click()
+ page.locator('#indicator-detail [data-close-indicator][data-nav]').click()
  expect(page.locator('main .person-preview-card')).to_have_count(0)
  expect(page.get_by_text('Nenhuma pessoa alcançou este marco na coorte selecionada.')).to_be_visible()
  print('PASS: complete cumulative funnels; same-cohort conversions; campaign filtering; no-base state; populations match counts')

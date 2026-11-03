@@ -17,7 +17,7 @@ Abra o servidor em um navegador compatível. Também é possível servir a pasta
 
 ## Páginas
 
-- Visão geral por perfil e Indicadores empresariais do gestor: dois funis completos, conversão entre etapas, filtro de campanha, resultados comerciais, pedidos e desempenho da equipe.
+- Painel único por perfil, dividido em seções; o painel do gestor reúne todos os indicadores empresariais: dois funis completos, conversão entre etapas, filtro de campanha, resultados comerciais, pedidos e desempenho da equipe.
 - Estratégia, distribuição validada em 100% e segmentação contextual.
 - Campanhas, filtros, criação local e ficha da campanha.
 - Pessoas com galeria, lista e visualização compacta; busca e filtros combináveis por tipo, especialidade/contexto, cidade, etapa e responsável; popup de prévia por hover/foco/toque e ficha individual. Filtros são preservados no retorno da ficha.
@@ -54,6 +54,8 @@ python tests/smoke.py
 python tests/profiles.py
 python tests/company.py
 python tests/crud.py
+python tests/routes.py
+python tests/growth.py
 ```
 
 O teste requer o pacote Python Playwright e Chromium. Use `MINERVA_CHROMIUM` para definir outro caminho de navegador e `MINERVA_TEST_URL` para outra origem. Não são dependências da aplicação.
@@ -75,3 +77,19 @@ A suíte `tests/company.py` verifica os 9 marcos médicos e 10 marcos do pacient
 ## Revisão de CRUD
 
 Use **Gerenciar registros** nas páginas ou **Novo registro** para criar, editar ou excluir dados fictícios. Equipe é gerenciada como Pessoas do tipo Colaborador. O saldo de produto é uma edição de demonstração; não cria um razão de movimentação de estoque. Reuniões e visitas compartilham a agenda local, sem enviar convites. Edição de etapa não produz marcos de conversão automaticamente. Documentos editados ficam locais e não publicam instruções para agentes.
+
+## Painel único e rotas de visitas
+
+O menu oferece um único **Painel**. `#indicadores` continua como endereço compatível e mostra a mesma página de `#inicio`. Gestor reúne os funis, campanhas, logística, equipe, tarefas e supervisão das rotas; representante e despachante recebem seções correspondentes ao seu escopo.
+
+Em Pessoas, registre **Aceite para visitas** e **Região de visitas**. Quando a região não estiver preenchida, a cidade é usada como agrupamento. Sem aceite explícito, o médico não entra na lista. Em Visitas, escolha a região e monte a rota com os médicos elegíveis. A seleção do representante é limitada à sua carteira. As paradas podem ser reordenadas e a rota é salva no navegador.
+
+**Fluxo de produto acordado:** Nova rota ou pedido ao Copilot → sugestão por IA dos médicos elegíveis e caminho no mapa → revisão → Iniciar rota → localização GPS durante a execução → supervisão no painel do gestor. O rastreamento real, a integração de mapas, cálculo de caminhos e geração por IA ainda não estão implementados. Os controles atuais são explicitamente de simulação; não solicitam geolocalização, não enviam localização e não acompanham outros dispositivos. O gestor vê as rotas registradas na mesma origem/navegador, com progresso simulado e última atualização. Revogação do aceite, mudança de região ou carteira sinalizam rotas que precisam de revisão.
+
+## Aprimoramento dos funis
+
+O gestor abre um único Painel com as guias **Indicadores**, **Análises e hipóteses**, **Experimentos**, **Configuração atual** e **Operação**. Indicadores é a primeira guia e mantém os funis completos lado a lado no desktop: médicos em azul, pacientes em verde. Em telas menores, os funis ficam empilhados.
+
+Hover/foco numa etapa mostra bases de cálculo, conversão da passagem anterior e desde a entrada, pessoas que ainda não avançaram e alcance da última etapa. Clique/toque abre detalhe lateral, com abas **Análise**, **Hipóteses**, **Experimentos** e **Padrão atual**. No celular, o detalhe ocupa a tela e pode ser fechado para voltar ao painel. Escape fecha o detalhe e devolve o foco. As guias aceitam setas, Home e End.
+
+Hipóteses, experimentos e padrões de referência têm CRUD local, ligados à etapa do funil. As guias gerais exibem os mesmos registros, com filtro por etapa. A análise atual é uma leitura determinística identificada como demonstrativa, sem IA conectada. Não existe histórico comparável, execução de A/B, cálculo de significância ou aplicação de variantes. Não se declara melhora, vencedor nem efeito causal a partir dos exemplos fictícios. Salvar um padrão é documentação local e não configura agentes. A configuração real e a vigência devem vir de integração futura.
