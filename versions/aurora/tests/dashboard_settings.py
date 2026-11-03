@@ -1,0 +1,60 @@
+"""Unified role dashboard and centralized editable company settings; no growth/AI surfaces."""
+from playwright.sync_api import sync_playwright,expect
+import os
+BASE=os.environ.get('MINERVA_TEST_URL','http://127.0.0.1:4173')
+with sync_playwright() as p:
+ b=p.chromium.launch(executable_path='/usr/bin/chromium',args=['--no-sandbox'])
+ page=b.new_page(viewport={'width':1366,'height':768},reduced_motion='reduce')
+ errors=[];page.on('pageerror',lambda e:errors.append(str(e)))
+ page.goto(BASE)
+ def go(route):
+  page.goto(f'{BASE}/#{route}');page.wait_for_function('(r)=>state.route===r',arg=route)
+ expect(page.locator('.dashboard-tabs')).to_have_count(0)
+ for area in ['resumo','avisos','tarefas','atividades','jornadas','campanhas','logistica','equipe']:
+  expect(page.locator('[data-dashboard-area='+area+']')).to_have_count(1)
+ expect(page.locator('main')).not_to_contain_text('Análises e hipóteses')
+ expect(page.locator('[data-crud-new=experiments]')).to_have_count(0)
+ assert page.locator('.page-heading').bounding_box()['height']<65
+ nav=page.locator('.sidebar nav');assert nav.evaluate('(e)=>e.scrollHeight<=e.clientHeight')
+ page.locator('.funnel-medicos [data-stage=accepted]').click()
+ expect(page.locator('#indicator-detail')).to_contain_text('50%')
+ expect(page.locator('#indicator-detail [role=tab]')).to_have_count(0)
+ expect(page.locator('#indicator-detail')).not_to_contain_text('IA')
+ page.keyboard.press('Escape')
+ go('gestao');expect(page.locator('h1')).to_have_text('Configurações da empresa')
+ expect(page.locator('.config-card')).to_have_count(8)
+ page.locator('[data-crud=companyProfile]').click()
+ expect(page.locator('#crud-form [data-crud-delete]')).to_have_count(0)
+ page.locator('[name=name]').fill('Empresa de teste')
+ page.locator('[name=email]').fill('contato@example.com')
+ page.locator('#crud-form button[type=submit]').click();page.reload()
+ expect(page.locator('.settings-banner')).to_contain_text('Empresa de teste')
+ expect(page.locator('.workspace-label')).to_have_text('Empresa de teste')
+ page.locator('[data-crud=companyRules]').click();page.locator('[name=monthlyCapacity]').fill('800')
+ page.locator('[name=defaultOwner]').fill('Bruno Costa')
+ page.locator('#crud-form button[type=submit]').click()
+ go('estrategia');expect(page.locator('main')).to_contain_text('800 novos médicos')
+ expect(page.locator('#strategy-distribution')).to_contain_text('30% · 240 médicos')
+ go('pessoas');page.locator('.crud-toolbar [data-crud-new=people]').click()
+ expect(page.locator('#crud-form [name=owner]')).to_have_value('Bruno Costa')
+ page.locator('[data-close-editor]').click()
+ go('gestao');page.locator('[data-new-employee]').click()
+ expect(page.locator('[name=type]')).to_have_value('Colaborador')
+ page.locator('[name=name]').fill('Pessoa da equipe')
+ page.locator('#crud-form button[type=submit]').click()
+ go('gestao/equipe');expect(page.locator('main')).to_contain_text('Pessoa da equipe')
+ for role in ['representante','despachante']:
+  page.locator('#profile-select').select_option(role)
+  expect(page.locator('[data-dashboard-area=resumo]')).to_have_count(0)
+  expect(page.locator('[data-dashboard-area=avisos]')).to_have_count(1)
+  expect(page.locator('[data-dashboard-area=tarefas]')).to_have_count(1)
+  expect(page.locator('[data-dashboard-area=atividades]')).to_have_count(1)
+  expect(page.locator('.rail-bottom [data-nav=gestao]')).not_to_be_visible()
+  go('gestao');expect(page.locator('[data-crud=companyProfile]')).to_have_count(0)
+ page.locator('#profile-select').select_option('gestor')
+ page.set_viewport_size({'width':390,'height':844})
+ for route in ['inicio','gestao','pessoas']:
+  go(route);assert page.evaluate('document.documentElement.scrollWidth<=innerWidth'),route
+ assert not errors,errors
+ print('PASS: complete dashboard, no AI/experiments, compact headers/menu, company settings persistence, applied defaults, employee creation and role/mobile scope')
+ b.close()

@@ -5,8 +5,10 @@
  const documents=brain.map(([id,ic,title,description,version])=>({id,title,description,version,content:''}));
  const appointments=relationshipActivities.map(a=>({...a,title:a.summary,date:'2026-11-03T09:00',result:''}));
  const routes=[],experiments=[],hypotheses=[],standards=[];
- const collections={people:allPeople,campaigns,tasks,orders:allOrders,products,documents,appointments,routes,experiments,hypotheses,standards};
- const labels={people:'Pessoas',campaigns:'Campanhas',tasks:'Tarefas',orders:'Pedidos',products:'Produtos',documents:'Documentos',appointments:'Agenda',experiments:'Experimentos',hypotheses:'Hipóteses',standards:'Padrões demonstrativos'};
+ const companyProfile=[{id:'company',name:'Aurora Cannabis',legalName:'',companyId:'',email:'',phone:'',city:'',address:'',website:'',timezone:'America/Sao_Paulo'}];
+ const companyRules=[{id:'rules',title:'Regras da operação',monthlyCapacity:500,defaultOwner:'Ana Silva',visitHours:'09:00–18:00',orderInstructions:'',supportInstructions:''}];
+ const collections={people:allPeople,campaigns,tasks,orders:allOrders,products,documents,appointments,routes,experiments,hypotheses,standards,companyProfile,companyRules};
+ const labels={people:'Pessoas',campaigns:'Campanhas',tasks:'Tarefas',orders:'Pedidos',products:'Produtos',documents:'Documentos',appointments:'Agenda',experiments:'Experimentos',hypotheses:'Hipóteses',standards:'Padrões demonstrativos',companyProfile:'Dados da empresa',companyRules:'Regras da operação'};
  const uid=()=>`demo-${crypto.randomUUID()}`;
  let storageError=false;
  try {
@@ -17,6 +19,7 @@
  }catch{storageError=true;}
  Object.values(collections).forEach(arr=>arr.forEach(r=>{r.id=r.id||uid();}));
  function sync(){
+  documents.forEach(d=>{if(d.id==='decisoes'&&d.title==='Decisões e experimentos')d.title='Decisões e versões';});
   employeeSeeds.splice(0,employeeSeeds.length,...allPeople.filter(p=>p.type==='Colaborador').map(p=>({...p,role:p.employeeRole||p.specialty})));
   relationshipActivities.splice(0,relationshipActivities.length,...appointments.map(a=>({...a,summary:a.title})));
   brain.splice(0,brain.length,...documents.map(d=>[d.id,'file',d.title,d.description,d.version]));
@@ -34,104 +37,84 @@
  const originalRender=render, originalBrainDetail=brainDetail;
  const originalIndicators=indicators;
  const originalContextual=contextual;
- const metricOptions=[...medicalStages.map(([id,label])=>['medicos/'+id,'Médicos · '+label]),...patientStages.map(([id,label])=>['pacientes/'+id,'Pacientes · '+label])];
- contextual=function(type,id){
-  if(type!=='aprimoramento')return originalContextual(type,id);
-  if(state.role!=='gestor')return notFound();
-  const stage=state.route.split('/')[2],metric=id+'/'+stage,stages=id==='medicos'?medicalStages:patientStages;
-  const definition=stages.find(([key])=>key===stage);if(!definition)return notFound();
-  const records=id==='medicos'?companyScope().doctors:companyScope().patients;
-  const row=funnelRows(records,stages).find(r=>r.key===stage);
-  const related=experiments.filter(e=>e.metric===metric);
-  return heading('Aprimoramento · '+definition[1],(id==='medicos'?'Jornada de médicos':'Jornada de pacientes')+' · configurações, hipóteses e testes relacionados ao indicador.')+btn('Voltar ao painel','inicio')+`<section class="card mt"><h2>Indicador e população</h2><div class="grid three"><div><small>Pessoas nesta etapa</small><div class="metric-value">${row.count}</div></div><div><small>Conversão da etapa anterior</small><div class="metric-value">${row.previous===null?'Entrada':formatRate(row.rate)}</div></div><div><small>Base anterior</small><div class="metric-value">${row.previous??'—'}</div></div></div><p>Coorte de demonstração. A configuração é uma hipótese de influência; a relação com o indicador não comprova efeito causal.</p></section><section class="card mt"><h2>Configurações e experimentos associados</h2><div class="actions"><button class="btn primary" data-crud-new="experiments">Novo experimento</button><button class="btn" data-crud="experiments">Gerenciar experimentos</button></div>${related.map(e=>`<article class="route-card"><h3>${esc(e.title)}</h3>${pill(e.status)}<p><strong>Configuração proposta:</strong> ${esc(e.setting)}</p><p><strong>Hipótese:</strong> ${esc(e.hypothesis)}</p><p><strong>Controle:</strong> ${esc(e.control)}</p><p><strong>Variante:</strong> ${esc(e.variant)}</p><p><strong>População e período:</strong> ${esc(e.population)}</p><p><strong>Evidências / observações:</strong> ${esc(e.notes||'Ainda não registradas. Sem conclusão de ganho.')}</p><button class="btn" data-crud="experiments" data-record="${esc(e.id)}">Editar experimento</button></article>`).join('')||'<p class="mt">Nenhum teste registrado para esta etapa. Comece descrevendo a configuração, hipótese, controle, variante, população e período. Nenhuma configuração será aplicada aos agentes.</p>'}</section>`;
- };
+ contextual=function(type,id){return type==='aprimoramento'?notFound():originalContextual(type,id);};
+ let activeMetric='',detailReturnFocus=null;
+ function metricInfo(metric){
+  const [kind,key]=metric.split('/'),stages=kind==='medicos'?medicalStages:patientStages;
+  const index=stages.findIndex(([id])=>id===key);if(index<0)return null;
+  const records=kind==='medicos'?companyScope().doctors:companyScope().patients;
+  const rows=funnelRows(records,stages);return {kind,key,index,label:stages[index][1],row:rows[index],entry:rows[0].count};
+ }
+ function closeDetail(restore=true){
+  document.getElementById('indicator-detail')?.remove();document.body.classList.remove('indicator-open');
+  if(restore&&detailReturnFocus?.isConnected)detailReturnFocus.focus();activeMetric='';
+ }
+ function showDetail(metric,focus=true){
+  if(state.role!=='gestor')return;const m=metricInfo(metric);if(!m)return;
+  const old=document.getElementById('indicator-detail');if(!old)detailReturnFocus=document.activeElement;activeMetric=metric;
+  const d=old||document.createElement('aside');d.id='indicator-detail';d.setAttribute('role','dialog');d.setAttribute('aria-label','Detalhe do indicador');
+  d.innerHTML=`<header class="indicator-detail-header"><div><small>${m.kind==='medicos'?'Médicos':'Pacientes'}</small><h2>${esc(m.label)}</h2></div><button class="icon-button" data-close-indicator aria-label="Fechar detalhe do indicador">×</button></header><div id="indicator-detail-content"><div class="grid two growth-metrics"><div><small>Pessoas nesta etapa</small><strong>${m.row.count}</strong></div><div><small>Conversão anterior</small><strong>${m.row.previous===null?'Entrada':formatRate(m.row.rate)}</strong></div><div><small>Desde a entrada</small><strong>${formatRate(rateValue(m.row.count,m.entry))}</strong></div><div><small>Base anterior</small><strong>${m.row.previous??'—'}</strong></div></div><p>Mesma coorte, pessoas únicas e marcos alcançados. ${m.row.previous===null?'Esta etapa define a entrada.':`${Math.max(0,m.row.previous-m.row.count)} pessoas ainda não têm este marco registrado.`}</p><p>Comparação com períodos anteriores: ainda sem histórico disponível.</p><button class="btn" data-nav="funil-${m.kind}/${m.key}" data-close-indicator>Ver pessoas desta etapa</button></div>`;
+  if(!old)document.body.append(d);document.body.classList.add('indicator-open');if(focus)d.querySelector('[data-close-indicator]').focus();
+ }
+ document.addEventListener('click',e=>{
+  const b=e.target.closest('button');if(!b)return;
+  if(b.dataset.indicator){e.preventDefault();e.stopImmediatePropagation();showDetail(b.dataset.indicator);}
+  if(b.hasAttribute('data-close-indicator'))closeDetail();
+ },true);
+ document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!document.querySelector('dialog[open]'))closeDetail();});
+ window.addEventListener('hashchange',()=>closeDetail(false));
  function routeSupervision(){
   const scoped=routes.filter(r=>state.role==='gestor'||r.owner===currentProfile().name);
   const active=scoped.filter(r=>r.phase==='Em andamento');
   const stopped=scoped.filter(r=>r.phase==='Concluída');
   return `<section class="card mt" id="route-supervision">${sectionHead(state.role==='gestor'?'Supervisão de rotas e localização':'Minhas rotas de visitas','Abrir rotas','visitas')}<p class="funnel-caption">Demonstração local. Posições GPS não são recebidas de outros dispositivos. O compartilhamento real será vinculado ao início e encerramento da rota.</p><div class="grid three">${[['Rotas planejadas',scoped.length],['Em andamento · simulação',active.length],['Concluídas · simulação',stopped.length]].map(([label,value])=>`<div><small>${label}</small><div class="metric-value">${value}</div></div>`).join('')}</div><div class="mt">${scoped.map(r=>`<div class="list-row"><span class="grow"><strong>${esc(r.owner)} · ${esc(r.title)}</strong><small>${esc(r.region)} · ${(r.stops||[]).length} paradas · ${Math.min(r.completedStops||0,(r.stops||[]).length)} concluídas</small><small>Última atualização da simulação: ${r.updatedAt?esc(new Date(r.updatedAt).toLocaleString('pt-BR')):'Sem atualização'} · Localização: não conectada</small></span>${pill(r.phase||'Planejada')}${btn('Ver rota','visitas')}</div>`).join('')||'<p>Nenhuma rota registrada. O acompanhamento aparecerá aqui quando houver rotas.</p>'}</div></section>`;
  }
- let dashboardTab='Indicadores',activeMetric='',detailTab='Análise',detailReturnFocus=null;
- const dashboardTabs=['Indicadores','Análises e hipóteses','Experimentos','Configuração atual','Operação'];
- const detailTabs=['Análise','Hipóteses','Experimentos','Padrão atual'];
- function metricInfo(metric){
-  const [kind,key]=metric.split('/'),stages=kind==='medicos'?medicalStages:patientStages;
-  const index=stages.findIndex(([id])=>id===key);if(index<0)return null;
-  const records=kind==='medicos'?companyScope().doctors:companyScope().patients;
-  const rows=funnelRows(records,stages);
-  return {metric,kind,key,index,label:stages[index][1],row:rows[index],rows,entry:rows[0].count};
+ function attentionBlocks(){
+  const ownTasks=tasks.filter(t=>state.role==='gestor'||t.owner===currentProfile().initials);
+  const pending=orders.filter(o=>o.payment==='Aguardando');
+  const schedule=appointments.filter(a=>state.role==='gestor'||a.owner===currentProfile().name).filter(a=>!['Realizada','Cancelada'].includes(a.status));
+  const tasksOpen=ownTasks.filter(t=>t.stage!=='Concluído');
+  const warnings=state.role==='representante'?schedule.filter(a=>!a.result).map(a=>[a.title,'reunioes']):pending.map(o=>['Pedido #'+o.id+' aguarda pagamento','pedidos/'+o.id]);
+  return `<div class="dashboard-attention"><section class="card" data-dashboard-area="avisos">${sectionHead('Avisos','Ver notificações','notificacoes')}${warnings.slice(0,3).map(([title,route])=>`<button class="dashboard-line" data-nav="${route}"><span class="attention-dot"></span><span>${esc(title)}</span>${icon('arrow')}</button>`).join('')||'<p class="dashboard-empty">Nenhum aviso prioritário nos registros atuais.</p>'}</section><section class="card" data-dashboard-area="tarefas">${sectionHead(state.role==='gestor'?'Tarefas da equipe':'Minhas tarefas','Abrir','tarefas')}<small>${tasksOpen.length} pendentes</small>${tasksOpen.slice(0,3).map(t=>`<button class="dashboard-line" data-task="${tasks.indexOf(t)}"><span>${esc(t.title)}</span>${pill(t.stage)}</button>`).join('')||'<p class="dashboard-empty">Nenhuma tarefa pendente.</p>'}</section><section class="card" data-dashboard-area="atividades">${sectionHead('Atividades e agenda','Ver agenda','reunioes')}${schedule.slice(0,3).map(a=>`<button class="dashboard-line" data-nav="${a.kind==='Visita'?'visitas':'reunioes'}"><span><strong>${esc(a.title)}</strong><small>${esc(a.date.replace('T',' '))} · ${esc(a.owner)}</small></span>${pill(a.kind)}</button>`).join('')||'<p class="dashboard-empty">Nenhuma atividade agendada para este perfil.</p>'}</section></div>`;
  }
- function metricPicker(){return `<label class="growth-filter">Etapa do funil<select id="growth-metric"><option value="">Todas as etapas</option>${metricOptions.map(([v,t])=>`<option value="${v}" ${v===state.growthFilter?'selected':''}>${esc(t)}</option>`).join('')}</select></label>`;}
- const metricTitle=metric=>metricOptions.find(([id])=>id===metric)?.[1]||metric;
- function analysisBlock(metric){
-  const m=metricInfo(metric);if(!m)return '';
-  const {row,entry}=m;
-  return `<div class="notice">Leitura demonstrativa dos dados · IA não conectada</div><div class="grid two growth-metrics"><div><small>Pessoas nesta etapa</small><strong>${row.count}</strong></div><div><small>Conversão anterior</small><strong>${row.previous===null?'Entrada':formatRate(row.rate)}</strong></div><div><small>Desde a entrada</small><strong>${formatRate(rateValue(row.count,entry))}</strong></div><div><small>Comparação no tempo</small><strong>Sem histórico</strong></div></div><h3>O que os registros mostram</h3><p>${row.previous===null?`Esta etapa define a entrada da coorte: ${entry} pessoas.`:`${row.count} de ${row.previous} pessoas da etapa anterior chegaram até aqui. ${Math.max(0,row.previous-row.count)} ainda não têm este marco registrado.`} Na entrada da jornada são ${entry} pessoas únicas.</p><h3>O que ainda não podemos concluir</h3><p>Sem coortes históricas comparáveis, não sabemos se esta taxa melhorou ou piorou. Os volumes são fictícios e pequenos; diferenças não comprovam uma causa.</p><h3>Próxima investigação</h3><p>Compare períodos com a mesma definição de público e janela de conversão. Segmente por origem e verifique atrasos de registro antes de propor uma mudança.</p><button class="btn" data-nav="funil-${m.kind}/${m.key}" data-close-indicator>Ver pessoas desta etapa</button>`;
- }
- function recordCards(name,metric=''){
-  const matches=collections[name].filter(r=>!metric||r.metric===metric);
-  return matches.map(r=>`<article class="growth-record"><small>${esc(metricTitle(r.metric))}</small><h3>${esc(r.title)}</h3>${pill(r.status||r.version||'Rascunho','gray')}${name==='experiments'?`<p><strong>Hipótese:</strong> ${esc(r.hypothesis)}</p><p><strong>Controle:</strong> ${esc(r.control)}</p><p><strong>Variante:</strong> ${esc(r.variant)}</p><p><strong>População e período:</strong> ${esc(r.population)}</p><p><strong>Evidências:</strong> ${esc(r.notes||'Sem evidências registradas. Nenhum vencedor declarado.')}</p>`:name==='hypotheses'?`<p>${esc(r.hypothesis)}</p><p><strong>Solução proposta:</strong> ${esc(r.solution)}</p><p><strong>Evidências:</strong> ${esc(r.evidence||'Ainda não registradas.')}</p>`:`<p style="white-space:pre-wrap">${esc(r.setting)}</p><p><strong>Versão:</strong> ${esc(r.version)} · <strong>Desde:</strong> ${esc(r.since||'Não definido')}</p><p>${esc(r.notes||'Registro local de referência; não configura agentes.')}</p>`}<button class="btn" data-crud="${name}" data-record="${esc(r.id)}">Editar registro</button></article>`).join('')||`<div class="growth-empty"><h3>${name==='experiments'?'Nenhum experimento registrado':name==='hypotheses'?'Nenhuma hipótese registrada':'Padrão de operação ainda não conectado'}</h3><p>${name==='standards'?'Registre a configuração de referência e sua versão para desenhar o fluxo. Salvar aqui não aplica alterações aos agentes.':'Crie um registro ligado à etapa do funil. Hipóteses e soluções propostas não são resultados comprovados.'}</p></div>`;
- }
- function collectionSection(name,metric=''){
-  const title={hypotheses:'Hipóteses e soluções a testar',experiments:'Experimentos relacionados',standards:'Configuração de referência'}[name];
-  return `<div class="section-head"><h3>${title}</h3><button class="btn primary" data-crud-new="${name}">Novo registro</button></div>${recordCards(name,metric)}`;
- }
- function detailContent(){
-  if(detailTab==='Análise')return analysisBlock(activeMetric);
-  return collectionSection({'Hipóteses':'hypotheses','Experimentos':'experiments','Padrão atual':'standards'}[detailTab],activeMetric);
- }
- function closeDetail(restoreFocus=true){
-  const d=document.getElementById('indicator-detail');if(!d)return;
-  d.remove();document.body.classList.remove('indicator-open');
-  if(restoreFocus&&detailReturnFocus?.isConnected)detailReturnFocus.focus();activeMetric='';
- }
- function showDetail(metric,tab='Análise',focus=true){
-  if(state.role!=='gestor'||!metricInfo(metric))return;
-  const old=document.getElementById('indicator-detail');if(!old)detailReturnFocus=document.activeElement;
-  activeMetric=metric;detailTab=tab;
-  const d=old||document.createElement('aside');d.id='indicator-detail';d.setAttribute('role','dialog');d.setAttribute('aria-label','Detalhe do indicador');d.setAttribute('aria-modal','false');
-  d.innerHTML=`<header class="indicator-detail-header"><div><small>${metricInfo(metric).kind==='medicos'?'Jornada de médicos':'Jornada de pacientes'}</small><h2>${esc(metricInfo(metric).label)}</h2></div><button class="icon-button" data-close-indicator aria-label="Fechar detalhe do indicador">×</button></header><div class="growth-tabs" role="tablist" aria-label="Detalhes da etapa">${detailTabs.map(t=>`<button role="tab" aria-selected="${t===tab}" tabindex="${t===tab?0:-1}" data-detail-tab="${t}" id="detail-tab-${detailTabs.indexOf(t)}" aria-controls="indicator-detail-content">${t}</button>`).join('')}</div><div id="indicator-detail-content" role="tabpanel" aria-labelledby="detail-tab-${detailTabs.indexOf(tab)}">${detailContent()}</div>`;
-  if(!old)document.body.append(d);document.body.classList.add('indicator-open');
-  if(focus)d.querySelector('[aria-selected=true]').focus();
- }
+ function dashboardTasks(){const own=tasks.filter(t=>state.role==='gestor'||t.owner===currentProfile().initials);return `<section class="card mt" id="dashboard-tasks">${sectionHead(state.role==='gestor'?'Trabalho da equipe':'Minhas tarefas','Abrir tarefas','tarefas')}<div class="grid four">${['A fazer','Em andamento','Em revisão','Concluído'].map(stage=>`<div><small>${stage}</small><div class="metric-value">${own.filter(t=>t.stage===stage).length}</div></div>`).join('')}</div></section>`;}
  indicators=function(){
-  const full=originalIndicators();
+  const name=companyProfile[0]?.name||'Minha empresa';
+  const title=state.role==='gestor'?'Painel do gestor':`Painel do ${currentProfile().label.toLowerCase()}`;
+  const head=heading(title,esc(name)+' · '+esc(currentProfile().scope));
   if(state.role!=='gestor'){
-   const ownTasks=tasks.filter(t=>t.owner===currentProfile().initials);
-   return full+(state.role==='representante'?routeSupervision():'')+`<section class="card mt" id="dashboard-tasks">${sectionHead('Minhas tarefas','Abrir tarefas','tarefas')}<p>${ownTasks.filter(t=>t.stage!=='Concluído').length} tarefas pendentes</p></section>`;
+   return head+scopedMetricsHtml()+attentionBlocks()+(state.role==='representante'?`<section class="card mt" data-dashboard-area="carteira">${sectionHead('Minha carteira','Ver pessoas','pessoas')}${people.slice(0,5).map(p=>`<button class="dashboard-line" data-nav="pessoas/${p.id}"><span>${esc(p.name)}</span>${pill(p.stage)}</button>`).join('')}</section>`+routeSupervision():`<section class="card mt" data-dashboard-area="pedidos">${sectionHead('Fila de pedidos atribuídos','Abrir pedidos','pedidos')}${orders.map(o=>`<button class="dashboard-line" data-nav="pedidos/${o.id}"><span>#${o.id} · ${esc(o.product)}</span>${pill(o.status)}</button>`).join('')}<div class="actions mt">${btn('Catálogo','catalogo')}${btn('Estoque','estoque')}</div></section>`)+dashboardTasks();
   }
-  const template=document.createElement('div');template.innerHTML=full;
-  const head=template.querySelector('.page-heading').outerHTML;
-  const nav=`<div class="growth-tabs dashboard-tabs" role="tablist" aria-label="Guias do painel">${dashboardTabs.map((t,i)=>`<button role="tab" tabindex="${t===dashboardTab?0:-1}" aria-selected="${t===dashboardTab}" data-dashboard-tab="${t}" id="dashboard-tab-${i}" aria-controls="dashboard-content">${t}</button>`).join('')}</div>`;
-  let content='';
-  if(dashboardTab==='Indicadores')content=`<section class="funnel-frame"><header class="funnel-frame-header"><div><h2>Jornadas comerciais</h2><small>Mesma coorte · pessoas únicas · dados demonstrativos</small></div><label>Origem<select id="analytics-campaign" aria-label="Campanha dos indicadores"><option value="all">Todas as campanhas</option>${campaigns.map(c=>`<option value="${c.id}" ${(state.analyticsCampaign||'all')===c.id?'selected':''}>${esc(c.name)}</option>`).join('')}</select></label></header>${template.querySelector('.company-funnels').outerHTML}<p class="funnel-frame-note">Os funis se conectam pelo encaminhamento de pacientes. Compare conversões dentro de cada jornada.</p></section><section class="dashboard-results"><h2>Resultados da operação</h2>${template.querySelector('.grid.four').outerHTML}</section>`;
-  else if(dashboardTab==='Operação'){
-   const ownTasks=tasks;content=[...template.children].filter(el=>el.matches('section')).map(el=>el.outerHTML).join('')+routeSupervision()+`<section class="card mt" id="dashboard-tasks">${sectionHead('Trabalho da equipe','Abrir tarefas','tarefas')}<div class="grid four">${['A fazer','Em andamento','Em revisão','Concluído'].map(stage=>`<div><small>${stage}</small><div class="metric-value">${ownTasks.filter(t=>t.stage===stage).length}</div></div>`).join('')}</div></section>`;
-  }else if(dashboardTab==='Análises e hipóteses'){
-   const metrics=metricOptions.filter(([id])=>!state.growthFilter||id===state.growthFilter);
-   content=notice('Análises ilustrativas calculadas localmente. IA e comparação histórica ainda não estão conectadas.')+metricPicker()+`<div class="grid two mt">${metrics.map(([metric,title])=>{const m=metricInfo(metric);return `<article class="card"><small>${m.kind==='medicos'?'Médicos':'Pacientes'}</small><h2>${esc(title.split(' · ')[1])}</h2><p>${m.row.count} pessoas · ${m.row.previous===null?'entrada da jornada':formatRate(m.row.rate)+' da etapa anterior'}</p><p class="funnel-caption">Sem histórico comparável para concluir melhora ou piora.</p><button class="btn" data-indicator="${metric}">Abrir análise da etapa</button></article>`;}).join('')}</div><section class="card mt">${collectionSection('hypotheses',state.growthFilter||'')}</section>`;
-  }else content=notice(dashboardTab==='Experimentos'?'Planejamento de testes demonstrativos. Nenhum teste é executado nem variante aplicada automaticamente.':'Padrões de referência da demonstração. A configuração real dos agentes ainda não está conectada.')+metricPicker()+`<section class="card mt">${collectionSection(dashboardTab==='Experimentos'?'experiments':'standards',state.growthFilter||'')}</section>`;
-  return head+nav+`<div id="dashboard-content" role="tabpanel" aria-labelledby="dashboard-tab-${dashboardTabs.indexOf(dashboardTab)}">${content}</div>`;
+  const template=document.createElement('div');template.innerHTML=originalIndicators();
+  const logistics=[...template.querySelectorAll('section')].find(el=>el.querySelector('h2')?.textContent==='Pedidos, pagamento e logística');
+  const funnel=`<section class="funnel-frame" data-dashboard-area="jornadas"><header class="funnel-frame-header"><div><h2>Comercial · médicos e pacientes</h2><small>Etapas e conversões da mesma coorte · demonstração</small></div><label>Origem<select id="analytics-campaign" aria-label="Campanha dos indicadores"><option value="all">Todas as campanhas</option>${campaigns.map(c=>`<option value="${c.id}" ${(state.analyticsCampaign||'all')===c.id?'selected':''}>${esc(c.name)}</option>`).join('')}</select></label></header>${template.querySelector('.company-funnels').outerHTML}</section>`;
+  return head+`<div data-dashboard-area="resumo">${template.querySelector('.grid.four').outerHTML}</div>`+attentionBlocks()+funnel+`<div data-dashboard-area="campanhas">${campaignResultsTable()}</div><div data-dashboard-area="logistica">${logistics?.outerHTML||''}</div><div data-dashboard-area="equipe">${teamPerformance()}</div>`+routeSupervision()+dashboardTasks();
+ };
+ const originalStrategy=strategy;
+ strategy=function(){const capacity=companyRules[0]?.monthlyCapacity??500;return originalStrategy().replace('500 novos médicos',capacity+' novos médicos').replace('<strong>500</strong>','<strong>'+capacity+'</strong>').replace(/(\d+)% · \d+ médicos/g,(_,percent)=>percent+'% · '+Math.round(Number(percent)*capacity/100)+' médicos');};
+ const personalManagement=management;
+ window.MinervaWorkspaceName=()=>companyProfile[0]?.name||'Minha empresa';
+ management=function(){
+  if(state.role!=='gestor'||['gestao/perfil','gestao/preferencias'].includes(state.route))return personalManagement();
+  if(state.route==='gestao/equipe')return teamCollection();
+  const company=companyProfile[0],rules=companyRules[0];
+  const configCard=(title,description,buttons)=>`<section class="card config-card"><h2>${title}</h2><p>${description}</p><div class="actions">${buttons}</div></section>`;
+  return heading('Configurações da empresa','Cadastros, regras e conteúdo editáveis em um só lugar.')+`<div class="settings-banner"><span>${esc(company.name)}</span><small>Alterações desta versão são salvas neste navegador.</small></div><div class="grid two config-grid">`+
+   configCard('Empresa','Identidade, razão social, CNPJ, contatos, endereço, site e fuso horário.',action('companyProfile','company','Editar dados da empresa'))+
+   configCard('Comercial e atendimento',`Capacidade mensal: ${esc(rules.monthlyCapacity)} médicos. Responsável padrão, horário de visitas e orientações da operação.`,action('companyRules','rules','Editar regras')+btn('Distribuição e segmentos','estrategia')+action('campaigns','','Gerenciar campanhas'))+
+   configCard('Equipe e responsabilidades','Cadastro de colaboradores, função e responsáveis pelas carteiras e pedidos.',btn('Ver equipe','gestao/equipe')+'<button class="btn" data-new-employee>Novo colaborador</button>'+action('people','','Gerenciar pessoas'))+
+   configCard('Catálogo e estoque','Produtos, apresentações, preços e saldos demonstrativos.',action('products','','Editar produtos')+btn('Ver estoque','estoque'))+
+   configCard('Pedidos e agenda','Responsáveis, estados operacionais, rastreio e atividades agendadas.',action('orders','','Gerenciar pedidos')+action('appointments','','Gerenciar agenda')+btn('Rotas e aceites','visitas'))+
+   configCard('Cérebro e materiais','Identidade, manuais e documentos de referência da empresa.',action('documents','','Editar documentos')+btn('Abrir Cérebro','cerebro'))+
+   configCard('Preferências pessoais','Idioma da interface e acessibilidade do usuário.',btn('Minhas preferências','gestao/preferencias'))+
+   configCard('Conexões e acesso','Canais, login e permissões reais ainda não estão conectados. Não é possível ativá-los nesta demonstração.','<span class="pill gray">Integração pendente</span>')+'</div>';
  };
  document.addEventListener('click',e=>{
-  const b=e.target.closest('button');if(!b)return;
-  if(b.dataset.dashboardTab){dashboardTab=b.dataset.dashboardTab;closeDetail(false);render();document.querySelector(`[data-dashboard-tab="${dashboardTab}"]`)?.focus();}
-  if(b.dataset.indicator){e.preventDefault();e.stopImmediatePropagation();showDetail(b.dataset.indicator);}
-  if(b.dataset.detailTab)showDetail(activeMetric,b.dataset.detailTab);
-  if(b.hasAttribute('data-close-indicator'))closeDetail();
- },true);
- document.addEventListener('change',e=>{if(e.target.id==='growth-metric'){state.growthFilter=e.target.value;render();}});
- document.addEventListener('keydown',e=>{
-  if(e.key==='Escape'&&!document.querySelector('dialog[open]'))closeDetail();
-  const tab=e.target.closest('[role=tab]');if(!tab)return;
-  if(['ArrowLeft','ArrowRight','Home','End'].includes(e.key)){
-   const buttons=[...tab.parentElement.querySelectorAll('[role=tab]')];const i=buttons.indexOf(tab);
-   const index=e.key==='Home'?0:e.key==='End'?buttons.length-1:(i+(e.key==='ArrowRight'?1:-1)+buttons.length)%buttons.length;
-   e.preventDefault();buttons[index].click();
-  }
+  if(!e.target.closest('[data-new-employee]'))return;if(state.role!=='gestor')return;
+  edit('people','');const form=document.getElementById('crud-form');form.elements.type.value='Colaborador';form.elements.employeeRole.value='Representante';form.elements.specialty.value='Representante';form.elements.owner.value='Gestão da empresa';form.elements.stage.value='Ativo na demo';
  });
- window.addEventListener('hashchange',()=>closeDetail(false));
  function allowed(name,r){
+  if(['experiments','hypotheses','standards'].includes(name))return false;
   if(state.role==='gestor')return true;
   if(name==='tasks')return !r||r.owner===currentProfile().initials;
   if((name==='appointments'||name==='routes')&&state.role==='representante')return !r||r.owner===currentProfile().name;
@@ -141,7 +124,7 @@
  const action=(name,id='',text='Gerenciar registros')=>`<button class="btn" data-crud="${name}" data-record="${esc(id)}">${esc(text)}</button>`;
  render=function(){
   sync();originalRender();
-  if(document.getElementById('indicator-detail')){if(state.role!=='gestor')closeDetail(false);else showDetail(activeMetric,detailTab,false);}
+  if(document.getElementById('indicator-detail')){if(state.role!=='gestor')closeDetail(false);else showDetail(activeMetric,false);}
   const [route,id]=state.route.split('/');
   const name={pessoas:'people',campanhas:'campaigns',tarefas:'tasks',pedidos:'orders',catalogo:'products',estoque:'products',produto:'products',cerebro:'documents',reunioes:'appointments',visitas:'appointments'}[route]||(state.route==='gestao/equipe'?'people':null);
   if(!name||!allowed(name)||!canOpen(state.route)||route==='visitas')return;
@@ -233,9 +216,8 @@
   const persisted=store();closeDialog();render();toast(persisted?'Rota salva neste navegador.':'Rota temporária: armazenamento indisponível.');
  },true);
  const fields={
-  hypotheses:[['title','Nome da hipótese'],['metric','Indicador',metricOptions],['hypothesis','Possível causa','textarea'],['solution','Solução proposta','textarea'],['evidence','Evidências disponíveis','textarea']],
-  standards:[['title','Nome do padrão'],['metric','Indicador',metricOptions],['setting','Configuração de referência','textarea'],['version','Versão'],['since','Desde quando'],['notes','Observações','textarea']],
-  experiments:[['title','Nome do experimento'],['metric','Indicador',metricOptions],['setting','Configuração relacionada','textarea'],['hypothesis','Hipótese','textarea'],['control','Controle / configuração atual','textarea'],['variant','Variante / configuração proposta','textarea'],['population','População e período de teste','textarea'],['status','Situação',['Rascunho','Planejado','Em teste (simulação)','Encerrado (simulação)']],['notes','Evidências e observações','textarea']],
+  companyProfile:[['name','Nome da empresa'],['legalName','Razão social'],['companyId','CNPJ'],['email','E-mail','email'],['phone','Telefone'],['city','Cidade'],['address','Endereço'],['website','Site'],['timezone','Fuso horário',['America/Sao_Paulo','America/Manaus','America/Recife','America/Fortaleza','America/Belem','America/Rio_Branco']]],
+  companyRules:[['title','Nome das regras'],['monthlyCapacity','Capacidade mensal de aquisição','number'],['defaultOwner','Responsável comercial padrão'],['visitHours','Horário para visitas'],['orderInstructions','Orientações para pedidos','textarea'],['supportInstructions','Orientações de atendimento','textarea']],
   people:[['name','Nome'],['type','Tipo',['Médico','Paciente','Colaborador']],['specialty','Especialidade / contexto'],['city','Cidade'],['region','Região de visitas'],['visitConsent','Aceite para visitas',['Não informado','Aceitou receber visitas','Não deseja visitas']],['stage','Etapa'],['owner','Responsável'],['employeeRole','Função na equipe',['Gestor','Representante','Despachante']]],
   campaigns:[['name','Nome'],['topic','Público / tema'],['status','Situação',['Planejada','Em andamento','Concluída']]],
   tasks:[['title','Título'],['stage','Situação',['A fazer','Em andamento','Em revisão','Concluído']],['owner','Responsável (iniciais)']],
@@ -246,15 +228,16 @@
  };
  function closeDialog(){const d=document.getElementById('editor');if(d.open)d.close();return d;}
  function list(name){
+  if(name==='companyProfile')return edit(name,'company');
+  if(name==='companyRules')return edit(name,'rules');
   const d=closeDialog();
   d.innerHTML=`<div class="dialog-top"><strong>${labels[name]}</strong><button class="icon-button" data-close-editor aria-label="Fechar">×</button></div><p>Registros de demonstração salvos neste navegador.</p><button class="btn primary" data-crud-new="${name}">Novo registro</button><div class="crud-records">${visible(name).map(r=>`<div class="list-row"><span class="grow"><strong>${esc(r.name||r.title||'#'+r.id)}</strong><small>${esc(r.stage||r.status||r.description||r.presentation||'')}</small></span>${action(name,r.id,'Editar')}<button class="btn" data-crud-delete="${name}" data-record="${esc(r.id)}">Excluir</button></div>`).join('')||'<p class="mt">Nenhum registro.</p>'}</div>`;d.showModal();
  }
  function defaults(name){
-  const selectedMetric=activeMetric||state.growthFilter||(state.route.startsWith('aprimoramento/')?state.route.split('/').slice(1).join('/'):'medicos/identified');
-  return {hypotheses:{metric:selectedMetric},standards:{metric:selectedMetric,version:'Rascunho'},experiments:{status:'Rascunho',metric:selectedMetric},people:{type:'Médico',specialty:'Não informado',city:'Não informada',stage:'Cadastro demonstrativo',owner:'Não atribuído',color:'#445f83',milestones:[]},campaigns:{topic:'Público não definido',status:'Planejada',leads:0,talks:0,meetings:0,color:'#335e9c',icon:'campaign'},tasks:{stage:'A fazer',owner:currentProfile().initials},orders:{payment:'Aguardando',status:'Aguardando pagamento',tracking:'',assignee:'Diego Souza',price:'R$ 0,00'},products:{qty:0,price:'R$ 0,00'},documents:{version:'Rascunho'},appointments:{kind:state.route.startsWith('visitas')?'Visita':'Reunião',status:'Planejada',owner:currentProfile().name,date:'',result:''}}[name];
+  return {people:{type:'Médico',specialty:'Não informado',city:'Não informada',stage:'Cadastro demonstrativo',owner:companyRules[0]?.defaultOwner||'Não atribuído',color:'#445f83',milestones:[]},campaigns:{topic:'Público não definido',status:'Planejada',leads:0,talks:0,meetings:0,color:'#335e9c',icon:'campaign'},tasks:{stage:'A fazer',owner:currentProfile().initials},orders:{payment:'Aguardando',status:'Aguardando pagamento',tracking:'',assignee:'Diego Souza',price:'R$ 0,00'},products:{qty:0,price:'R$ 0,00'},documents:{version:'Rascunho'},appointments:{kind:state.route.startsWith('visitas')?'Visita':'Reunião',status:'Planejada',owner:currentProfile().name,date:'',result:''}}[name];
  }
  function input(name,field,record){
-  const [k,label,type]=field,value=record[k]??'',required=!['tracking','result','employeeRole','description','region','notes','evidence','since'].includes(k);
+  const [k,label,type]=field,value=record[k]??'',required=!(name==='companyProfile'&&!['name','timezone'].includes(k))&&!(name==='companyRules'&&!['title','monthlyCapacity'].includes(k))&&!['tracking','result','employeeRole','description','region','notes','evidence','since'].includes(k);
   let options=Array.isArray(type)?type:null;
   if(type==='person'||type==='contact')options=(type==='person'?allPeople.filter(p=>p.type==='Paciente'):people.filter(p=>p.type!=='Colaborador')).map(p=>[p.id,p.name]);
   if(type==='product')options=products.map(p=>[p.name,p.name]);
@@ -263,15 +246,16 @@
   let control;
   if(options)control=`<select name="${k}" ${required?'required':''}>${options.map(o=>{const [v,t]=Array.isArray(o)?o:[o,o];return `<option value="${esc(v)}" ${v===value?'selected':''}>${esc(t)}</option>`}).join('')}</select>`;
   else if(type==='textarea')control=`<textarea name="${k}" rows="5" maxlength="20000" ${required?'required':''}>${esc(value)}</textarea>`;
-  else control=`<input name="${k}" type="${type==='number'?'number':type==='datetime-local'?'datetime-local':'text'}" ${type==='number'?'min="0" step="1"':''} maxlength="300" value="${esc(value)}" ${required?'required':''}>`;
+  else control=`<input name="${k}" type="${type==='number'?'number':type==='datetime-local'?'datetime-local':type==='email'?'email':'text'}" ${type==='number'?'min="0" step="1"':''} maxlength="300" value="${esc(value)}" ${required?'required':''}>`;
   return `<label>${label}${control}</label>`;
  }
  function edit(name,id){
   const found=collections[name].find(r=>r.id===id);if(!allowed(name,found))return toast('Registro fora do escopo.');
   const r=found||defaults(name),d=closeDialog();
-  d.innerHTML=`<form id="crud-form" data-collection="${name}" data-record="${esc(id||'')}"><div class="dialog-top"><strong>${found?'Editar':'Criar'} · ${labels[name]}</strong><button type="button" class="icon-button" data-close-editor aria-label="Fechar">×</button></div><p>Dados fictícios · salvos apenas neste navegador.</p>${fields[name].map(f=>input(name,f,r)).join('')}<p id="crud-error" role="alert"></p><div class="actions"><button class="btn primary" type="submit">Salvar registro</button><button class="btn" type="button" data-crud="${name}">Cancelar</button>${found?`<button class="btn" type="button" data-crud-delete="${name}" data-record="${esc(id)}">Excluir</button>`:''}</div></form>`;d.showModal();
+  d.innerHTML=`<form id="crud-form" data-collection="${name}" data-record="${esc(id||'')}"><div class="dialog-top"><strong>${found?'Editar':'Criar'} · ${labels[name]}</strong><button type="button" class="icon-button" data-close-editor aria-label="Fechar">×</button></div><p>Dados fictícios · salvos apenas neste navegador.</p>${fields[name].map(f=>input(name,f,r)).join('')}<p id="crud-error" role="alert"></p><div class="actions"><button class="btn primary" type="submit">Salvar registro</button><button class="btn" type="button" ${['companyProfile','companyRules'].includes(name)?'data-close-editor':`data-crud="${name}"`}>Cancelar</button>${found&&!['companyProfile','companyRules'].includes(name)?`<button class="btn" type="button" data-crud-delete="${name}" data-record="${esc(id)}">Excluir</button>`:''}</div></form>`;d.showModal();
  }
  function dependency(name,r){
+  if(['companyProfile','companyRules'].includes(name))return 'A configuração principal pode ser editada, mas não excluída.';
   if(name==='people'){
    if(allOrders.some(o=>o.person===r.id)||appointments.some(a=>a.person===r.id)||routes.some(a=>a.stops?.includes(r.id)))return 'Esta pessoa tem pedidos ou atividades vinculados. Remova ou reatribua esses registros antes de excluir.';
    if(r.type==='Colaborador'&&(allPeople.some(p=>p.id!==r.id&&p.owner===r.name)||allOrders.some(o=>o.assignee===r.name)||tasks.some(t=>t.owner===r.initials)))return 'Este colaborador tem registros atribuídos. Reatribua-os antes de excluir.';
@@ -312,7 +296,7 @@
   }
  },true);
  document.addEventListener('submit',e=>{
-  if(e.target.id==='editor-form'&&e.target.dataset.kind==='strategy')setTimeout(()=>store(),0);
+  if(e.target.id==='editor-form'&&e.target.dataset.kind==='strategy')setTimeout(()=>{store();render();},0);
   if(e.target.id!=='crud-form')return;
   e.preventDefault();e.stopImmediatePropagation();
   const form=e.target,name=form.dataset.collection,id=form.dataset.record,arr=collections[name],existing=arr.find(r=>r.id===id);
@@ -326,7 +310,9 @@
   if(name==='appointments'&&!people.some(p=>p.id===values.person))return fail('Selecione uma pessoa do seu escopo.');
   const r={...(existing||defaults(name)),...values,id:id||uid()};
   if(name==='products')r.qty=Number(r.qty);
+  if(name==='companyRules'){if(!Number.isSafeInteger(Number(r.monthlyCapacity))||Number(r.monthlyCapacity)<0)return fail('Informe uma capacidade inteira igual ou maior que zero.');r.monthlyCapacity=Number(r.monthlyCapacity);}
   if(name==='people'){
+   if(r.type==='Colaborador')r.specialty=r.employeeRole;
    r.initials=r.name.split(/\s+/).map(x=>x[0]).slice(0,2).join('').toUpperCase();
    if(existing?.type==='Paciente'&&r.type!=='Paciente'&&allOrders.some(o=>o.person===r.id))return fail('Pessoa vinculada a pedidos precisa continuar como paciente.');
    if(existing&&existing.name!==r.name){allPeople.forEach(p=>{if(p.owner===existing.name)p.owner=r.name;});allOrders.forEach(o=>{if(o.assignee===existing.name)o.assignee=r.name;});appointments.forEach(a=>{if(a.owner===existing.name)a.owner=r.name;});tasks.forEach(t=>{if(existing.type==='Colaborador'&&t.owner===existing.initials)t.owner=r.initials;});}

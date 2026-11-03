@@ -13,7 +13,6 @@ with sync_playwright() as p:
  expect(page.locator('#navigation [data-nav=indicadores]')).to_have_count(0)
  expect(page.locator('main h1')).to_have_text('Painel do gestor')
  expect(page.locator('.company-funnel')).to_have_count(2)
- page.locator('[data-dashboard-tab=Operação]').click()
  expect(page.locator('#route-supervision')).to_be_visible()
  go('visitas');expect(page.locator('[data-route-new]')).to_be_disabled()
  for doctor,region in [('marina','Centro SP'),('juliana','Centro SP'),('rafael','Campinas')]:
@@ -33,7 +32,7 @@ with sync_playwright() as p:
  page.locator('#visit-route-form button[type=submit]').click();page.reload()
  # Role resets to manager on reload; the local saved route remains visible.
  expect(page.locator('.route-card')).to_contain_text('Rota SP teste')
- page.locator('[data-route-progress]').click();go('inicio');page.locator('[data-dashboard-tab=Operação]').click()
+ page.locator('[data-route-progress]').click();go('inicio')
  expect(page.locator('#route-supervision')).to_contain_text('Em andamento')
  expect(page.locator('#route-supervision')).to_contain_text('Localização: não conectada')
  page.locator('#profile-select').select_option('despachante')

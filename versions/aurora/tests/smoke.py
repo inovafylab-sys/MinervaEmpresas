@@ -76,14 +76,13 @@ with sync_playwright() as p:
     assert 'não enviado' in page.locator('#message-thread .message').last.inner_text()
     print('PASS: conversation composer labels unsent message')
     go('gestao')
-    for tab in ['Empresa','Equipe','Permissões','Conexões','Plano','Preferências']:
-        page.locator(f'[data-tab="{tab}"]').click()
-        assert page.locator('main .card').inner_text().strip()
+    assert page.locator('h1').inner_text()=='Configurações da empresa'
+    assert page.locator('.config-card').count()==8
     go('apresentacao')
     for n in range(8):
         page.locator(f'.presentation-tabs [data-slide="{n}"]').click()
         assert f'{n+1:02d} / 08' in page.locator('.hero-note').inner_text()
-    print('PASS: management tabs and all presentation slides')
+    print('PASS: company settings hub and all presentation slides')
     go('inicio')
     page.locator('.sidebar').hover()
     page.wait_for_timeout(300)

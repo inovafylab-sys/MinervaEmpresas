@@ -11,7 +11,6 @@ with sync_playwright() as p:
  def go(route):
   page.goto(f'{BASE}/#{route}')
   page.wait_for_function('(r)=>state.route===r',arg=route)
-  if route in ['inicio','indicadores']:page.locator('[data-dashboard-tab=Indicadores]').click()
  go('indicadores')
  expect(page.locator('.company-funnel')).to_have_count(2)
  expect(page.locator('.company-funnel').nth(0).locator('.funnel-stage')).to_have_count(9)
@@ -35,10 +34,8 @@ with sync_playwright() as p:
  page.locator('#analytics-campaign').select_option('neurologia')
  assert page.locator('.company-funnel').first.locator('[data-stage=identified]').get_attribute('data-count')=='2'
  assert page.locator('.company-funnel').first.locator('[data-stage=accepted]').get_attribute('data-count')=='0'
- page.locator('[data-dashboard-tab=Operação]').click()
  expect(page.locator('[data-campaign-result]')).to_have_count(1)
  assert 'Novos caminhos' in page.locator('[data-campaign-result]').inner_text()
- page.locator('[data-dashboard-tab=Indicadores]').click()
  page.locator('#analytics-campaign').select_option('sono')
  assert '—' in page.locator('.funnel-rate').nth(1).inner_text()
  assert 'NaN' not in page.locator('main').inner_text()

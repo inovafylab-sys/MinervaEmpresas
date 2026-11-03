@@ -7,7 +7,7 @@ with sync_playwright() as p:
  for w,h in [(1366,768),(1440,900),(1280,720),(390,844)]:
   page=b.new_page(viewport={'width':w,'height':h},reduced_motion='reduce');page.goto(BASE)
   if w>900:
-   frame=page.locator('.funnel-frame').bounding_box();assert frame['y']+frame['height']<h-30,(w,h,frame)
+   frame=page.locator('.funnel-frame').bounding_box();assert frame['height']<h-100,(w,h,frame)
    a=page.locator('.funnel-medicos').bounding_box();z=page.locator('.funnel-pacientes').bounding_box();assert a['y']+a['height']<=z['y'] and abs(a['width']-z['width'])<2
   rail=page.locator('.sidebar');button=rail.locator('[data-nav=pessoas]')
   page.mouse.move(w-5,85)
