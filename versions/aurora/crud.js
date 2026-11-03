@@ -8,9 +8,16 @@
  const companyProfile=[{id:'company',name:'Aurora Cannabis',legalName:'',companyId:'',email:'',phone:'',city:'',address:'',website:'',timezone:'America/Sao_Paulo'}];
  const suppliedLimit=window.MinervaSubscription?.maxSegments;
  const subscription=Object.freeze({maxSegments:Number.isSafeInteger(suppliedLimit)&&suppliedLimit>=0?suppliedLimit:25});
+ const footerLinks=[
+  {id:'footer-site',title:'Site',icon:'site',url:''},
+  {id:'footer-instagram',title:'Instagram',icon:'instagram',url:''},
+  {id:'footer-linkedin',title:'LinkedIn',icon:'linkedin',url:''},
+  {id:'footer-whatsapp',title:'WhatsApp',icon:'whatsapp',url:''},
+  {id:'footer-email',title:'E-mail',icon:'email',url:''}
+ ];
  const companyRules=[{id:'rules',title:'Regras da operação',monthlyCapacity:500,defaultOwner:'Ana Silva',visitHours:'09:00–18:00',orderInstructions:'',supportInstructions:''}];
- const collections={people:allPeople,campaigns,tasks,orders:allOrders,products,documents,appointments,routes,experiments,hypotheses,standards,companyProfile,companyRules};
- const labels={people:'Pessoas',campaigns:'Campanhas',tasks:'Tarefas',orders:'Pedidos',products:'Produtos',documents:'Documentos',appointments:'Agenda',experiments:'Experimentos',hypotheses:'Hipóteses',standards:'Padrões demonstrativos',companyProfile:'Dados da empresa',companyRules:'Regras da operação'};
+ const collections={people:allPeople,campaigns,tasks,orders:allOrders,products,documents,appointments,routes,experiments,hypotheses,standards,companyProfile,companyRules,footerLinks};
+ const labels={people:'Pessoas',campaigns:'Campanhas',tasks:'Tarefas',orders:'Pedidos',products:'Produtos',documents:'Documentos',appointments:'Agenda',experiments:'Experimentos',hypotheses:'Hipóteses',standards:'Padrões demonstrativos',companyProfile:'Dados da empresa',companyRules:'Regras da operação',footerLinks:'Links do rodapé'};
  const uid=()=>`demo-${crypto.randomUUID()}`;
  let storageError=false;
  try {
@@ -36,6 +43,32 @@
   catch{storageError=true;toast('Não foi possível salvar neste navegador. As alterações só duram nesta aba.');return false;}
  }
  persist=()=>{store();};
+ function safeFooterUrl(value){
+  const raw=String(value||'').trim();if(!raw||/[\u0000-\u001f\u007f]/.test(raw))return null;
+  if(/^#[a-z0-9][a-z0-9/_%.-]*$/i.test(raw))return raw;
+  if(/^mailto:[^\s@?]+@[^\s@?]+\.[^\s@?]+$/i.test(raw)||/^tel:\+?\d{6,18}$/.test(raw))return raw;
+  try{const url=new URL(raw);return ['https:','http:'].includes(url.protocol)&&!url.username&&!url.password?url.href:null;}catch{return null;}
+ }
+ function footerIcon(name){
+  if(name==='apresentacao')return icon('orbit');if(name==='documento')return icon('file');if(name==='link')return icon('link');
+  const drawings={
+   site:'<circle cx="12" cy="12" r="9"/><ellipse cx="12" cy="12" rx="4" ry="9"/><path d="M3 12h18M5 6h14M5 18h14"/>',
+   instagram:'<rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r=".7" fill="currentColor"/>',
+   linkedin:'<rect x="3" y="3" width="18" height="18" rx="3"/><path d="M7 10v7m0-10v.2M11 17v-7m0 3c0-4 6-4 6 0v4"/>',
+   whatsapp:'<path d="M4.2 17.8 3 21l3.7-1A9 9 0 1 0 4.2 17.8Z"/><path d="M8 7c-3 2 4 10 8 8l-2-3-2 1-2-2 1-2Z"/>',
+   email:'<rect x="3" y="5" width="18" height="14" rx="3"/><path d="m4 7 8 6 8-6"/>',
+   telefone:'<path d="M6 3h4l1 5-3 2c1 3 3 5 6 6l2-3 5 1v4c0 7-18-1-18-11 0-2 1-4 3-4Z"/>',
+   suporte:'<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/><path d="m5.5 5.5 3.7 3.7m5.6 5.6 3.7 3.7m0-13-3.7 3.7m-5.6 5.6-3.7 3.7"/>',
+   github:'<path d="M9 19c-4 1-4-2-6-2m12 5v-4c0-1-.3-1.6-1-2 4-.5 7-2 7-6 0-1.5-.5-2.7-1.5-3.7.2-1.1.1-2.2-.4-3.3-1.5-.2-3.3.8-4.1 1.3a14 14 0 0 0-6 0C8.2 3.8 6.4 2.8 4.9 3c-.5 1.1-.6 2.2-.4 3.3C3.5 7.3 3 8.5 3 10c0 4 3 5.5 7 6-.7.4-1 1-1 2v4"/>'
+  };
+  return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${drawings[name]||drawings.site}</svg>`;
+ }
+ function renderFooter(){
+  const footer=document.querySelector('.system-footer');
+  const links=footerLinks.map(r=>({...r,href:safeFooterUrl(r.url)})).filter(r=>!r.href||!r.href.startsWith('#')||canOpen(r.href.slice(1)));
+  footer.innerHTML=`<div class="footer-brand"><strong>MINERVA <span>×</span> NEURUM</strong><small>${esc(companyProfile[0]?.name||'')}</small></div><nav class="footer-links" aria-label="Links da Minerva">${links.map(r=>r.href?`<a href="${esc(r.href)}" aria-label="${esc(r.title)}" title="${esc(r.title)}" ${r.href.startsWith('#')?'':'target="_blank" rel="noopener noreferrer"'}>${footerIcon(r.icon)}</a>`:`<span class="footer-link-preview" role="img" aria-label="${esc(r.title)} — endereço não definido" title="${esc(r.title)}">${footerIcon(r.icon)}</span>`).join('')}</nav>`;
+ }
+
  const originalRender=render, originalBrainDetail=brainDetail;
  const originalIndicators=indicators;
  const originalContextual=contextual;
@@ -153,7 +186,7 @@
   const company=companyProfile[0],rules=companyRules[0];
   const configCard=(title,description,buttons)=>`<section class="card config-card"><h2>${title}</h2><p>${description}</p><div class="actions">${buttons}</div></section>`;
   return heading('Configurações da empresa','Cadastros, regras e conteúdo editáveis em um só lugar.')+`<div class="settings-banner"><span>${esc(company.name)}</span><small>Alterações desta versão são salvas neste navegador.</small></div><div class="grid two config-grid">`+
-   configCard('Empresa','Identidade, razão social, CNPJ, contatos, endereço, site e fuso horário.',action('companyProfile','company','Editar dados da empresa'))+
+   configCard('Empresa','Identidade, contatos, endereço, site e links do rodapé.',action('companyProfile','company','Editar dados da empresa')+action('footerLinks','','Editar links do rodapé'))+
    configCard('Comercial e atendimento',`Capacidade mensal: ${esc(rules.monthlyCapacity)} médicos. Limite do plano: ${subscription.maxSegments} segmentações. Responsável padrão e orientações da operação.`,action('companyRules','rules','Editar regras')+btn('Distribuição e segmentos','estrategia')+action('campaigns','','Gerenciar campanhas'))+
    configCard('Equipe e responsabilidades','Cadastro de colaboradores, função e responsáveis pelas carteiras e pedidos.',btn('Ver equipe','gestao/equipe')+'<button class="btn" data-new-employee>Novo colaborador</button>'+action('people','','Gerenciar pessoas'))+
    configCard('Catálogo e estoque','Produtos, apresentações, preços e saldos demonstrativos.',action('products','','Editar produtos')+btn('Ver estoque','estoque'))+
@@ -176,7 +209,7 @@
  function visible(name){return collections[name].filter(r=>allowed(name,r));}
  const action=(name,id='',text='Gerenciar registros')=>`<button class="btn" data-crud="${name}" data-record="${esc(id)}">${esc(text)}</button>`;
  render=function(){
-  sync();originalRender();
+  sync();originalRender();renderFooter();
   if(document.getElementById('indicator-detail')){if(state.role!=='gestor')closeDetail(false);else showDetail(activeMetric,false);}
   const [route,id]=state.route.split('/');
   const name={pessoas:'people',campanhas:'campaigns',tarefas:'tasks',pedidos:'orders',catalogo:'products',estoque:'products',produto:'products',cerebro:'documents',reunioes:'appointments',visitas:'appointments'}[route]||(state.route==='gestao/equipe'?'people':null);
@@ -269,6 +302,7 @@
   const persisted=store();closeDialog();render();toast(persisted?'Rota salva neste navegador.':'Rota temporária: armazenamento indisponível.');
  },true);
  const fields={
+  footerLinks:[['title','Nome do link'],['icon','Ícone',[['site','Site'],['instagram','Instagram'],['linkedin','LinkedIn'],['whatsapp','WhatsApp'],['email','E-mail'],['telefone','Telefone'],['github','GitHub'],['suporte','Suporte'],['documento','Documento'],['apresentacao','Apresentação'],['link','Link']]],['url','Endereço do link (opcional)']],
   companyProfile:[['name','Nome da empresa'],['legalName','Razão social'],['companyId','CNPJ'],['email','E-mail','email'],['phone','Telefone'],['city','Cidade'],['address','Endereço'],['website','Site'],['timezone','Fuso horário',['America/Sao_Paulo','America/Manaus','America/Recife','America/Fortaleza','America/Belem','America/Rio_Branco']]],
   companyRules:[['title','Nome das regras'],['monthlyCapacity','Capacidade mensal de aquisição','number'],['defaultOwner','Responsável comercial padrão'],['visitHours','Horário para visitas'],['orderInstructions','Orientações para pedidos','textarea'],['supportInstructions','Orientações de atendimento','textarea']],
   people:[['name','Nome'],['type','Tipo',['Médico','Paciente','Colaborador']],['specialty','Especialidade / contexto'],['city','Cidade'],['region','Região de visitas'],['visitConsent','Aceite para visitas',['Não informado','Aceitou receber visitas','Não deseja visitas']],['stage','Etapa'],['owner','Responsável'],['employeeRole','Função na equipe',['Gestor','Representante','Despachante']]],
@@ -284,13 +318,13 @@
   if(name==='companyProfile')return edit(name,'company');
   if(name==='companyRules')return edit(name,'rules');
   const d=closeDialog();
-  d.innerHTML=`<div class="dialog-top"><strong>${labels[name]}</strong><button class="icon-button" data-close-editor aria-label="Fechar">×</button></div><p>Registros de demonstração salvos neste navegador.</p><button class="btn primary" data-crud-new="${name}">Novo registro</button><div class="crud-records">${visible(name).map(r=>`<div class="list-row"><span class="grow"><strong>${esc(r.name||r.title||'#'+r.id)}</strong><small>${esc(r.stage||r.status||r.description||r.presentation||'')}</small></span>${action(name,r.id,'Editar')}<button class="btn" data-crud-delete="${name}" data-record="${esc(r.id)}">Excluir</button></div>`).join('')||'<p class="mt">Nenhum registro.</p>'}</div>`;d.showModal();
+  d.innerHTML=`<div class="dialog-top"><strong>${labels[name]}</strong><button class="icon-button" data-close-editor aria-label="Fechar">×</button></div><p>Registros de demonstração salvos neste navegador.</p><button class="btn primary" data-crud-new="${name}">Novo registro</button><div class="crud-records">${visible(name).map(r=>`<div class="list-row"><span class="grow"><strong>${esc(r.name||r.title||'#'+r.id)}</strong><small>${esc(r.stage||r.status||r.description||r.presentation||r.url||'')}</small></span>${action(name,r.id,'Editar')}<button class="btn" data-crud-delete="${name}" data-record="${esc(r.id)}">Excluir</button></div>`).join('')||'<p class="mt">Nenhum registro.</p>'}</div>`;d.showModal();
  }
  function defaults(name){
-  return {people:{type:'Médico',specialty:'Não informado',city:'Não informada',stage:'Cadastro demonstrativo',owner:companyRules[0]?.defaultOwner||'Não atribuído',color:'#445f83',milestones:[]},campaigns:{topic:'Público não definido',status:'Planejada',leads:0,talks:0,meetings:0,color:'#335e9c',icon:'campaign'},tasks:{stage:'A fazer',owner:currentProfile().initials},orders:{payment:'Aguardando',status:'Aguardando pagamento',tracking:'',assignee:'Diego Souza',price:'R$ 0,00'},products:{qty:0,price:'R$ 0,00'},documents:{version:'Rascunho'},appointments:{kind:state.route.startsWith('visitas')?'Visita':'Reunião',status:'Planejada',owner:currentProfile().name,date:'',result:''}}[name];
+  return {footerLinks:{icon:'link'},people:{type:'Médico',specialty:'Não informado',city:'Não informada',stage:'Cadastro demonstrativo',owner:companyRules[0]?.defaultOwner||'Não atribuído',color:'#445f83',milestones:[]},campaigns:{topic:'Público não definido',status:'Planejada',leads:0,talks:0,meetings:0,color:'#335e9c',icon:'campaign'},tasks:{stage:'A fazer',owner:currentProfile().initials},orders:{payment:'Aguardando',status:'Aguardando pagamento',tracking:'',assignee:'Diego Souza',price:'R$ 0,00'},products:{qty:0,price:'R$ 0,00'},documents:{version:'Rascunho'},appointments:{kind:state.route.startsWith('visitas')?'Visita':'Reunião',status:'Planejada',owner:currentProfile().name,date:'',result:''}}[name];
  }
  function input(name,field,record){
-  const [k,label,type]=field,value=record[k]??'',required=!(name==='companyProfile'&&!['name','timezone'].includes(k))&&!(name==='companyRules'&&!['title','monthlyCapacity'].includes(k))&&!['tracking','result','employeeRole','description','region','notes','evidence','since'].includes(k);
+  const [k,label,type]=field,value=record[k]??'',required=!(name==='footerLinks'&&k==='url')&&!(name==='companyProfile'&&!['name','timezone'].includes(k))&&!(name==='companyRules'&&!['title','monthlyCapacity'].includes(k))&&!['tracking','result','employeeRole','description','region','notes','evidence','since'].includes(k);
   let options=Array.isArray(type)?type:null;
   if(type==='person'||type==='contact')options=(type==='person'?allPeople.filter(p=>p.type==='Paciente'):people.filter(p=>p.type!=='Colaborador')).map(p=>[p.id,p.name]);
   if(type==='product')options=products.map(p=>[p.name,p.name]);
@@ -361,6 +395,7 @@
   if(['products','orders'].includes(name)&&!/^R?\$?\s*\d+(?:\.\d{3})*(?:,\d{2})?$/.test(values.price))return fail('Informe um valor como R$ 389,00.');
   if(name==='orders'&&(!allPeople.some(p=>p.id===values.person&&p.type==='Paciente')||!products.some(p=>p.name===values.product)))return fail('Selecione paciente e produto válidos.');
   if(name==='appointments'&&!people.some(p=>p.id===values.person))return fail('Selecione uma pessoa do seu escopo.');
+  if(name==='footerLinks'&&values.url&&!safeFooterUrl(values.url))return fail('Informe um endereço HTTP/HTTPS, e-mail (mailto:), telefone (tel:) ou página interna (#).');
   const r={...(existing||defaults(name)),...values,id:id||uid()};
   if(name==='products')r.qty=Number(r.qty);
   if(name==='companyRules'){if(!Number.isSafeInteger(Number(r.monthlyCapacity))||Number(r.monthlyCapacity)<0)return fail('Informe uma capacidade inteira igual ou maior que zero.');r.monthlyCapacity=Number(r.monthlyCapacity);}

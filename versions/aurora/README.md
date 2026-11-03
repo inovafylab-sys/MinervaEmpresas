@@ -54,7 +54,7 @@ Fluxo de produto previsto: Nova rota ou pedido ao Copilot → sugestão de médi
 
 A visualização do conjunto é o objetivo: cada bloco apresenta uma unidade completa de informação. Cabeçalhos compactos reservam espaço para os dados. A entrada mostra números, avisos, tarefas e atividades; as áreas seguintes aprofundam a operação. Experimentos não fazem parte desta versão.
 
-O menu é ordenado por perfil, sem painel retangular de fundo: círculos flutuantes maiores, com contraste e destaque do item ativo. Todos os círculos ficam no mesmo eixo do logo do cabeçalho, com espaçamento uniforme entre itens e margens simétricas na área entre cabeçalho e rodapé. A altura disponível fica fixa durante a navegação. O hover/foco expande os rótulos deslocando o conteúdo; a seleção recolhe o menu. Seu espaçamento permite ver os itens em alturas comuns de notebook sem rolar. A foto/iniciais do cabeçalho abrem o dropdown pessoal com perfil, preferências e notificações; o gestor também acessa as configurações da empresa. Escape e clique fora fecham o dropdown; navegação por teclado e movimento reduzido são suportados. A troca de página tem uma entrada deslizante de 240 ms somente no conteúdo principal; filtros e edições não repetem o efeito. Preferências de movimento reduzido do dispositivo e do usuário desativam a transição.
+O menu é ordenado por perfil, sem painel retangular de fundo: círculos flutuantes maiores, com contraste e destaque do item ativo. Todos os círculos ficam no mesmo eixo do logo do cabeçalho, com espaçamento uniforme entre itens e margens simétricas na área entre o cabeçalho e a borda inferior da janela. A altura disponível fica fixa durante a navegação. O hover/foco expande os rótulos deslocando o conteúdo; a seleção recolhe o menu. Seu espaçamento permite ver os itens em alturas comuns de notebook sem rolar. A foto/iniciais do cabeçalho abrem o dropdown pessoal com perfil, preferências e notificações; o gestor também acessa as configurações da empresa. Escape e clique fora fecham o dropdown; navegação por teclado e movimento reduzido são suportados. A troca de página tem uma entrada deslizante de 240 ms somente no conteúdo principal; filtros e edições não repetem o efeito. Preferências de movimento reduzido do dispositivo e do usuário desativam a transição.
 
 ## Validação
 
@@ -75,6 +75,7 @@ python tests/dashboard_settings.py
 python tests/floating_nav.py
 python tests/page_transition.py
 python tests/segments.py
+python tests/footer.py
 ```
 
 As verificações de perfis validam apenas apresentação e escopo da demonstração, não autorização de backend.
@@ -86,3 +87,9 @@ O plano desta demonstração permite **25 segmentações**. O limite da assinatu
 Cada segmentação possui nome e percentual editáveis, com opção de remoção. O editor mantém exatamente uma linha vazia enquanto a soma for menor que 100% e o número de linhas preenchidas for menor que o limite do plano. Ao atingir qualquer limite, a linha vazia é retirada; reduzir um percentual ou remover uma segmentação a restaura quando houver ambas as disponibilidades. A tela mostra total, saldo e vagas do plano em tempo real.
 
 Percentuais usam até duas casas decimais, somados em centésimos para evitar erros de ponto flutuante. A soma não pode ultrapassar 100% e nomes duplicados não são aceitos. Distribuições parciais podem ser salvas como rascunho; não são exibidas como completas nem executam aquisição. As distribuições antigas de quatro percentuais são migradas preservando os valores e os nomes de referência. Nomes e percentuais novos são persistidos no navegador.
+
+## Rodapé ao final do conteúdo
+
+O rodapé está no fluxo da página, depois da área principal, sem posição fixa ou sobreposição. Mesmo nas páginas curtas ele fica abaixo do frame inicial; aparece ao chegar ao fim da rolagem. A área de trabalho deixa de reservar espaço para um rodapé fixo, e o menu flutuante passa a ocupar a altura até próximo da borda inferior da janela.
+
+Por orientação do proprietário, os ícones iniciais ficam **sem endereços**, como elementos visuais não clicáveis e sem tabulação. Os espaços iniciais são Site, Instagram, LinkedIn, WhatsApp e E-mail. Em Configurações da empresa → Empresa → Editar links do rodapé, o gestor pode criar, editar e remover esses itens e escolher um ícone. Endereços são opcionais; quando cadastrados, são validados e habilitam o link. São permitidos HTTP/HTTPS, mailto, tel e páginas internas; esquemas executáveis são rejeitados. Links externos abrem em outra aba com `noopener noreferrer`. Destinos, nomes e ícones continuam locais à demonstração.

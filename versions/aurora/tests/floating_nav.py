@@ -19,9 +19,9 @@ with sync_playwright() as p:
    assert max(gaps)-min(gaps)<.2,(width,role,gaps)
    r=rail.bounding_box();top=circles[0]['y']-circles[0]['h']/2-r['y'];bottom=r['y']+r['height']-circles[-1]['y']-circles[-1]['h']/2
    assert abs(top-gaps[0])<.2 and abs(bottom-gaps[0])<.2,(role,top,bottom,gaps)
-   header=page.locator('.topbar').bounding_box();footer=page.locator('.system-footer').bounding_box()
+   header=page.locator('.topbar').bounding_box()
    outer_top=circles[0]['y']-circles[0]['h']/2-header['y']-header['height']
-   outer_bottom=footer['y']-circles[-1]['y']-circles[-1]['h']/2
+   outer_bottom=height-circles[-1]['y']-circles[-1]['h']/2
    assert abs(outer_top-outer_bottom)<.2,(role,outer_top,outer_bottom)
    if width==1366 and role=='gestor':page.screenshot(path='/workspace/work/floating-menu-manager.png')
    logo=page.locator('.brand svg').bounding_box();assert abs(logo['x']+logo['width']/2-circles[0]['x'])<.2
