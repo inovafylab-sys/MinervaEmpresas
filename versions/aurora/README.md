@@ -33,7 +33,7 @@ Abra o servidor em um navegador compatível. Também é possível servir a pasta
 - Notificações e proposta de aprovação.
 - Apresentação do sistema em oito etapas, orientada pelo material Neurum.
 
-Apenas uma página ocupa a área principal. Fichas substituem a página principal e têm navegação de retorno. O Copilot é aberto pelo cabeçalho e permanece ao lado da página no desktop; em telas pequenas usa painel sobreposto. O menu mantém altura fixa e expande por hover ou foco do teclado. Busca global: botão no cabeçalho ou Ctrl/Cmd+K. A preferência do dispositivo por movimento reduzido é respeitada.
+Apenas uma página ocupa a área principal. Fichas substituem a página principal e têm navegação de retorno. O Copilot é aberto pelo cabeçalho e permanece ao lado da página no desktop; em telas pequenas usa painel sobreposto. O menu mantém altura fixa e expande por hover ou foco do teclado, deslocando a página principal para abrir espaço em desktop, tablet e celular. Busca global: botão no cabeçalho ou Ctrl/Cmd+K. A preferência do dispositivo por movimento reduzido é respeitada.
 
 ## Limites reais
 
@@ -41,7 +41,7 @@ Esta entrega é uma versão navegável de frontend com dados fictícios sinaliza
 
 O Copilot é um demonstrador determinístico de navegação: entende comandos como “abra os pedidos”, abre a página e explica o contexto. Não executa ações externas e não usa LLM.
 
-Tarefas persistem no armazenamento deste navegador. Pessoas, campanhas, mensagens, distribuição e demais registros locais duram somente a sessão. Registros de reunião, visita e propostas são apresentados em um comprovante local, sem alterar jornadas ou calendário. Dados clínicos, confirmação de pagamento e regras comerciais não são inferidos pelo frontend. O backend deverá fornecer identidade, autorização, validações e evidências antes de qualquer uso operacional.
+Pessoas (incluindo colaboradores), campanhas, tarefas, pedidos, produtos, documentos e agenda de reuniões/visitas têm criação, consulta, edição e exclusão com confirmação, salvas no armazenamento deste navegador. A distribuição da estratégia também é preservada. Ações de gerenciamento respeitam os escopos demonstrativos; vínculos de pedidos e atividades bloqueiam exclusões de pessoas, produtos e campanhas. Formulários de resultado atualizam os registros da agenda. Mensagens e propostas continuam demonstrativas e temporárias. Não existe compartilhamento entre navegadores ou dispositivos. Falhas de armazenamento são informadas e deixam os registros temporários na aba. Dados clínicos, confirmação de pagamento e regras comerciais não são inferidos pelo frontend. O backend deverá fornecer identidade, autorização, validações e evidências antes de qualquer uso operacional.
 
 ## Validação
 
@@ -53,6 +53,7 @@ node --check people-preview.js
 python tests/smoke.py
 python tests/profiles.py
 python tests/company.py
+python tests/crud.py
 ```
 
 O teste requer o pacote Python Playwright e Chromium. Use `MINERVA_CHROMIUM` para definir outro caminho de navegador e `MINERVA_TEST_URL` para outra origem. Não são dependências da aplicação.
@@ -70,3 +71,7 @@ A ficha de gestão, a ficha de relacionamento e a ficha operacional são apresen
 O cabeçalho aceita nome e foto por um adaptador de apresentação, depois de uma sessão validada pelo backend. Login Google real ainda não está configurado. O adaptador não atribui papel nem verifica token.
 
 A suíte `tests/company.py` verifica os 9 marcos médicos e 10 marcos do paciente, taxas calculadas na mesma coorte, filtro de campanha, ausência de denominador, populações abertas a partir dos números, fichas da equipe com escopo individual, popup por hover/teclado/toque e adaptação ao celular. `company.js` contém o cenário fictício e a apresentação dos indicadores; `people-preview.js` controla a prévia não modal.
+
+## Revisão de CRUD
+
+Use **Gerenciar registros** nas páginas ou **Novo registro** para criar, editar ou excluir dados fictícios. Equipe é gerenciada como Pessoas do tipo Colaborador. O saldo de produto é uma edição de demonstração; não cria um razão de movimentação de estoque. Reuniões e visitas compartilham a agenda local, sem enviar convites. Edição de etapa não produz marcos de conversão automaticamente. Documentos editados ficam locais e não publicam instruções para agentes.

@@ -27,8 +27,8 @@ with sync_playwright() as p:
     page.locator('[data-search]').fill('inexistente')
     assert page.locator('tbody tr').count()==0
     page.get_by_role('button', name='Nova pessoa').click()
-    page.locator('[name=title]').fill('<script>Teste Seguro</script>')
-    page.locator('#editor-form button[type=submit]').click()
+    page.locator('[name=name]').fill('<script>Teste Seguro</script>')
+    page.locator('#crud-form button[type=submit]').click()
     page.locator('[data-search]').fill('Teste Seguro')
     assert page.locator('tbody tr').count()==1
     assert page.locator('tbody script').count()==0
@@ -36,11 +36,11 @@ with sync_playwright() as p:
     go('tarefas')
     page.get_by_role('button',name='Nova tarefa',exact=True).click()
     page.locator('[name=title]').fill('Tarefa de teste persistente')
-    page.locator('#editor-form button[type=submit]').click()
+    page.locator('#crud-form button[type=submit]').click()
     page.reload()
     page.get_by_text('Tarefa de teste persistente',exact=True).click()
     page.locator('[name=stage]').select_option('Concluído')
-    page.locator('#editor-form button[type=submit]').click()
+    page.locator('#crud-form button[type=submit]').click()
     assert 'Tarefa de teste persistente' in page.locator('.kanban-column').last.inner_text()
     print('PASS: task persistence and status editing')
     go('estrategia')
